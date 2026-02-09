@@ -547,9 +547,28 @@ const db = {
         }
     },
     saveProduct: async (product) => {
-        const { error } = await _supabase.from('products').upsert(product);
-        if (error) console.error("Error saving product:", error);
-        return !error;
+        try {
+            // Log the data being sent for debugging
+            console.log("Saving product to Supabase:", product);
+            
+            const { error } = await _supabase.from('products').upsert(product);
+            
+            if (error) {
+                console.error("Supabase Error Details:", error);
+                // Show more helpful alert
+                let errorDetail = error.message || "خطأ غير معروف";
+                if (error.hint) errorDetail += " | Hint: " + error.hint;
+                if (error.details) errorDetail += " | Details: " + error.details;
+                
+                alert("خطأ في المزامنة: " + errorDetail);
+                return false;
+            }
+            return true;
+        } catch (err) {
+            console.error("Critical Sync Exception:", err);
+            alert("فشل الاتصال: " + err.message);
+            return false;
+        }
     },
     deleteProduct: async (id) => {
         const { error } = await _supabase.from('products').delete().eq('id', id);
@@ -879,25 +898,25 @@ const products = {
         }
 
         const productData = {
-            id: id || Date.now().toString(),
+            id: id ? (isNaN(id) ? id : parseInt(id)) : Date.now(),
             name,
             code: code || '',
             cost,
             price,
             qty,
             barcode: barcode || '',
-            created_at: id ? (state.products.find(p => p.id === id)?.created_at || new Date().toISOString()) : new Date().toISOString(),
+            created_at: id ? (state.products.find(p => p.id == id)?.created_at || new Date().toISOString()) : new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
 
         const success = await db.saveProduct(productData);
         if (success) {
             if (id) {
-                const index = state.products.findIndex(p => p.id === id);
-                state.products[index] = productData;
-            } else {
-                state.products.push(productData);
-            }
+                    const index = state.products.findIndex(p => p.id == id);
+                    state.products[index] = productData;
+                } else {
+                    state.products.push(productData);
+                }
             
             localStorage.setItem('products', JSON.stringify(state.products));
             ui.closeModal();
@@ -965,7 +984,7 @@ const products = {
     },
     delete: (id) => {
         if(confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
-            state.products = state.products.filter(p => p.id !== id);
+            state.products = state.products.filter(p => p.id != id);
             db.deleteProduct(id); // Sync to Supabase
             localStorage.setItem('products', JSON.stringify(state.products));
             products.render();
