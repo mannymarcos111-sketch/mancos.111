@@ -538,10 +538,13 @@ const db = {
             }
 
             // Fetch Invoices
-            const { data: invs, error: iErr } = await _supabase.from('invoices').select('*');
+            const { data: invs, error: iErr } = await _supabase.from('invoices').select('*').order('date', { ascending: false });
             if (!iErr && invs) {
+                console.log("Fetched invoices from Supabase:", invs.length);
                 state.invoices = invs;
                 localStorage.setItem('invoices', JSON.stringify(invs));
+            } else if (iErr) {
+                console.error("Error fetching invoices:", iErr);
             }
 
             // Fetch Users
@@ -597,9 +600,22 @@ const db = {
         return !error;
     },
     saveInvoice: async (invoice) => {
-        const { error } = await _supabase.from('invoices').insert(invoice);
-        if (error) console.error("Error saving invoice:", error);
-        return !error;
+        try {
+            console.log("Syncing invoice to Supabase:", invoice);
+            const { error } = await _supabase.from('invoices').insert(invoice);
+            
+            if (error) {
+                console.error("Supabase Invoice Error:", error);
+                alert("فشل حفظ الفاتورة سحابياً: " + error.message);
+                return false;
+            }
+            console.log("Invoice synced successfully");
+            return true;
+        } catch (err) {
+            console.error("Invoice Sync Exception:", err);
+            alert("خطأ في الاتصال أثناء حفظ الفاتورة: " + err.message);
+            return false;
+        }
     },
     saveUser: async (user) => {
         const { error } = await _supabase.from('users').upsert(user);
@@ -1185,8 +1201,17 @@ const sales = {
             }
         });
 
+        const success = await db.saveInvoice(invoice); // Sync invoice to Supabase
+        
+        if (!success) {
+            // If sync fails, we still keep it locally but warn the user
+            console.warn("Invoice saved locally only due to sync failure");
+            alert("تم حفظ الفاتورة محلياً فقط. يرجى التأكد من الإنترنت للمزامنة لاحقاً.");
+        }
+        
+        // Always push to local state to show immediately
         state.invoices.push(invoice);
-        db.saveInvoice(invoice); // Sync invoice to Supabase
+        
         state.cart = [];
         
         localStorage.setItem('invoices', JSON.stringify(state.invoices));
