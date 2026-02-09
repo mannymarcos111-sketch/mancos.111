@@ -805,10 +805,18 @@ const ui = {
         ];
 
         state.html5QrCode.start(
-            { facingMode: "environment" }, 
+            { facingMode: { exact: "environment" } }, 
             { ...config, formatsToSupport: formats }, 
             onScanSuccess
         ).catch(err => {
+            console.warn("Exact environment camera not found, trying loose environment mode...", err);
+            // Fallback to loose environment if exact fails
+            return state.html5QrCode.start(
+                { facingMode: "environment" },
+                { ...config, formatsToSupport: formats },
+                onScanSuccess
+            );
+        }).catch(err => {
             console.error("Camera error:", err);
             let msg = "تعذر فتح الكاميرا: ";
             if (err.name === 'NotAllowedError') msg += "يرجى منح صلاحية الكاميرا في المتصفح";
@@ -909,6 +917,37 @@ const products = {
             return;
         }
 
+        // Check for duplicate barcode if this is a NEW product
+        if (!id && barcode) {
+            const existingProduct = state.products.find(p => p.barcode === barcode);
+            if (existingProduct) {
+                const confirmUpdate = confirm(`المنتج "${existingProduct.name}" موجود بالفعل بهذا الباركود.\nهل تريد إضافة الكمية الجديدة (${qty}) إلى المخزون وتحديث السعر؟`);
+                if (confirmUpdate) {
+                    // Update existing product instead of creating new
+                    const updatedData = {
+                        ...existingProduct,
+                        cost: cost || existingProduct.cost,
+                        price: price || existingProduct.price,
+                        qty: existingProduct.qty + qty,
+                        updated_at: new Date().toISOString()
+                    };
+                    
+                    const success = await db.saveProduct(updatedData);
+                    if (success) {
+                        const index = state.products.findIndex(p => p.id === existingProduct.id);
+                        state.products[index] = updatedData;
+                        localStorage.setItem('products', JSON.stringify(state.products));
+                        ui.closeModal();
+                        products.render();
+                        return;
+                    } else {
+                        alert("خطأ في تحديث المنتج الموجود");
+                        return;
+                    }
+                }
+            }
+        }
+
         const productData = {
             id: id ? (isNaN(id) ? id : parseInt(id)) : Date.now(),
             name,
@@ -965,8 +1004,8 @@ const products = {
                         <div class="flex items-center gap-2 mt-0.5">
                             <span class="text-blue-600 font-black text-sm">${p.price.toLocaleString()} د.ج</span>
                             <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                            <span class="text-[10px] font-black ${p.qty < 5 ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'} px-2 py-0.5 rounded-md uppercase">
-                                المخزون: ${p.qty}
+                            <span class="text-[10px] font-black ${p.qty <= 0 ? 'text-red-600 bg-red-100 border border-red-200' : (p.qty < 5 ? 'text-orange-500 bg-orange-50' : 'text-gray-400 bg-gray-50')} px-2 py-0.5 rounded-md uppercase">
+                                ${p.qty <= 0 ? 'نفذت الكمية' : `المخزون: ${p.qty}`}
                             </span>
                         </div>
                         <div class="flex items-center gap-2 mt-1">
