@@ -446,33 +446,52 @@
             <button onclick="ui.closeModal()" class="mt-4 w-full bg-gray-900 text-white p-5 rounded-2xl font-black active:scale-95 transition-transform shrink-0 mb-4">تم</button>
         </div>
 
-        <!-- Barcode Scanner Modal -->
-        <div id="barcode-scanner-modal" class="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 hidden animate-slide-up h-[75vh] flex flex-col">
-            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 shrink-0"></div>
-            <div class="flex items-center justify-between mb-4 shrink-0">
-                <h3 class="text-2xl font-black text-gray-900">ماسح الباركود</h3>
-                <span class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-2 py-1 rounded-md animate-pulse">جاري المسح...</span>
-            </div>
+    <!-- Barcode Scanner Modal (Full Screen) -->
+    <div id="barcode-scanner-modal" class="fixed inset-0 bg-black z-[100] hidden flex flex-col animate-fade-in">
+        <!-- Close Button (Top Right) -->
+        <button onclick="ui.stopScanner()" class="absolute top-6 right-6 z-[110] w-12 h-12 bg-white/10 backdrop-blur-md text-white rounded-full flex items-center justify-center active:scale-90 transition-transform">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <!-- Camera Toggle Button (Top Left) -->
+        <button id="camera-toggle-btn" onclick="ui.toggleCamera()" class="absolute top-6 left-6 z-[110] w-12 h-12 bg-white/10 backdrop-blur-md text-white rounded-full flex items-center justify-center active:scale-90 transition-transform">
+            <i class="fas fa-camera-rotate text-xl"></i>
+        </button>
+
+        <div id="reader-container" class="flex-1 relative overflow-hidden">
+            <div id="reader" class="w-full h-full object-cover"></div>
             
-            <div id="reader-container" class="flex-1 rounded-3xl overflow-hidden bg-black relative border-4 border-gray-50">
-                <div id="reader" class="w-full h-full"></div>
-                <!-- Scanner Overlay UI -->
-                <div class="absolute inset-0 border-[40px] border-black/30 pointer-events-none flex items-center justify-center">
-                    <div class="w-64 h-40 border-2 border-emerald-400 rounded-2xl relative shadow-[0_0_20px_rgba(52,211,153,0.3)]">
-                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-0.5 bg-emerald-400/50 animate-[scan_2s_ease-in-out_infinite]"></div>
+            <!-- Optimized Scanner Overlay UI -->
+            <div class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                <!-- Guide Text (Top) -->
+                <div class="mb-8 text-center px-6">
+                    <h3 class="text-white text-xl font-black mb-2 drop-shadow-lg">ماسح الباركود</h3>
+                    <p class="text-white/60 text-xs font-bold uppercase tracking-widest drop-shadow-md">ضع الكود داخل المربع للمسح التلقائي</p>
+                </div>
+
+                <!-- Scanning Square -->
+                <div class="relative">
+                    <!-- Corners -->
+                    <div class="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg"></div>
+                    <div class="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg"></div>
+                    <div class="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-lg"></div>
+                    <div class="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-lg"></div>
+                    
+                    <!-- Scan Area -->
+                    <div class="w-72 h-48 bg-blue-500/5 border border-white/20 rounded-xl relative overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.2)]">
+                        <!-- Scanning Line -->
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-[scan_2.5s_ease-in-out_infinite] opacity-80 shadow-[0_0_15px_rgba(59,130,246,0.8)]"></div>
                     </div>
                 </div>
-            </div>
-            
-            <p class="text-center text-[10px] text-gray-400 mt-4 font-bold uppercase tracking-widest">ضع الباركود داخل المربع الأخضر</p>
-            
-            <div class="mt-6 flex gap-3">
-                <button onclick="ui.stopScanner()" class="w-full bg-gray-100 text-gray-900 p-5 rounded-2xl font-black active:scale-95 transition-transform flex items-center justify-center gap-2">
-                    <i class="fas fa-times-circle text-lg"></i>
-                    إغلاق الكاميرا
-                </button>
+
+                <!-- Status Indicator (Bottom) -->
+                <div class="mt-12 flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+                    <span class="text-white text-[10px] font-black uppercase tracking-[0.2em]">جاري البحث عن باركود...</span>
+                </div>
             </div>
         </div>
+    </div>
 
     <style>
         @keyframes scan {
@@ -497,6 +516,8 @@ const state = {
     cart: [],
     currentView: 'dashboard',
     html5QrCode: null,
+    currentCameraFacing: "environment",
+    scannerTargetId: null,
     isSyncing: false
 };
 
@@ -742,14 +763,14 @@ const ui = {
             return;
         }
 
+        state.scannerTargetId = targetId;
         ui.showModal('barcode-scanner-modal');
         
         // Optimized Scanner Config for Mobile
         const config = { 
-            fps: 30, // Increased FPS for faster scanning
+            fps: 30, 
             qrbox: (viewWidth, viewHeight) => {
-                // Larger scan area for better detection
-                const size = Math.min(viewWidth, viewHeight) * 0.7;
+                const size = Math.min(viewWidth, viewHeight) * 0.8;
                 return { width: size, height: size * 0.6 };
             },
             aspectRatio: 1.0,
@@ -768,17 +789,13 @@ const ui = {
         }
         
         const onScanSuccess = (decodedText, decodedResult) => {
-            // Vibration feedback if supported
             if (navigator.vibrate) navigator.vibrate(100);
             
-            console.log("Barcode Scanned:", decodedText);
-
-            if (targetId) {
-                const input = document.getElementById(targetId);
+            if (state.scannerTargetId) {
+                const input = document.getElementById(state.scannerTargetId);
                 if (input) input.value = decodedText;
                 ui.stopScanner();
             } else {
-                // Use loose comparison for ID/barcode matching
                 const product = state.products.find(p => p.barcode == decodedText || p.id == decodedText);
                 if (product) {
                     sales.addToCart(product.id);
@@ -790,49 +807,41 @@ const ui = {
             }
         };
         
-        // Support ALL common barcode formats
         const formats = [
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
             Html5QrcodeSupportedFormats.ITF,
             Html5QrcodeSupportedFormats.QR_CODE
         ];
 
         state.html5QrCode.start(
-            { facingMode: { exact: "environment" } }, 
+            { facingMode: state.currentCameraFacing }, 
             { ...config, formatsToSupport: formats }, 
             onScanSuccess
         ).catch(err => {
-            console.warn("Exact environment camera not found, trying loose environment mode...", err);
-            // Fallback to loose environment if exact fails
-            return state.html5QrCode.start(
-                { facingMode: "environment" },
-                { ...config, formatsToSupport: formats },
-                onScanSuccess
-            );
-        }).catch(err => {
             console.error("Camera error:", err);
-            let msg = "تعذر فتح الكاميرا: ";
-            if (err.name === 'NotAllowedError') msg += "يرجى منح صلاحية الكاميرا في المتصفح";
-            else if (err.name === 'NotFoundError') msg += "لا توجد كاميرا في هذا الجهاز";
-            else if (err.name === 'NotReadableError') msg += "الكاميرا قيد الاستخدام من قبل تطبيق آخر";
-            else msg += err;
-            alert(msg);
+            alert("تعذر فتح الكاميرا: " + err);
             ui.closeModal();
         });
+    },
+    toggleCamera: () => {
+        if (state.html5QrCode && state.html5QrCode.isScanning) {
+            state.currentCameraFacing = state.currentCameraFacing === "environment" ? "user" : "environment";
+            state.html5QrCode.stop().then(() => {
+                ui.scanBarcode(state.scannerTargetId);
+            });
+        }
     },
     stopScanner: () => {
         if (state.html5QrCode && state.html5QrCode.isScanning) {
             state.html5QrCode.stop().then(() => {
+                state.scannerTargetId = null;
                 ui.closeModal();
             }).catch(err => {
-                console.error("Stop error:", err);
                 ui.closeModal();
             });
         } else {
