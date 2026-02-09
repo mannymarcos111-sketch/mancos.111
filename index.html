@@ -509,10 +509,10 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // State Management
 const state = {
-    currentUser: JSON.parse(localStorage.getItem('currentUser')) || null,
-    products: JSON.parse(localStorage.getItem('products')) || [],
-    users: JSON.parse(localStorage.getItem('users')) || [],
-    invoices: JSON.parse(localStorage.getItem('invoices')) || [],
+    currentUser: (() => { try { return JSON.parse(localStorage.getItem('currentUser')); } catch(e) { return null; } })(),
+    products: (() => { try { return JSON.parse(localStorage.getItem('products')) || []; } catch(e) { return []; } })(),
+    users: (() => { try { return JSON.parse(localStorage.getItem('users')) || []; } catch(e) { return []; } })(),
+    invoices: (() => { try { return JSON.parse(localStorage.getItem('invoices')) || []; } catch(e) { return []; } })(),
     cart: [],
     currentView: 'dashboard',
     html5QrCode: null,
@@ -533,16 +533,24 @@ const db = {
             // Fetch Products
             const { data: prods, error: pErr } = await _supabase.from('products').select('*');
             if (!pErr && prods) {
-                state.products = prods;
-                localStorage.setItem('products', JSON.stringify(prods));
+                // دمج المنتجات: الحفاظ على المنتجات المحلية التي قد تكون أحدث أو لم ترفع بعد
+                const remoteIds = new Set(prods.map(p => p.id.toString()));
+                const localOnly = state.products.filter(p => !remoteIds.has(p.id.toString()));
+                state.products = [...prods, ...localOnly];
+                localStorage.setItem('products', JSON.stringify(state.products));
             }
 
             // Fetch Invoices
             const { data: invs, error: iErr } = await _supabase.from('invoices').select('*').order('date', { ascending: false });
             if (!iErr && invs) {
                 console.log("Fetched invoices from Supabase:", invs.length);
-                state.invoices = invs;
-                localStorage.setItem('invoices', JSON.stringify(invs));
+                
+                // دمج الفواتير: الحفاظ على الفواتير المحلية التي لم تُرفع بعد
+                const remoteIds = new Set(invs.map(i => i.id.toString()));
+                const localOnly = state.invoices.filter(i => !remoteIds.has(i.id.toString()));
+                
+                state.invoices = [...invs, ...localOnly].sort((a, b) => new Date(b.date) - new Date(a.date));
+                localStorage.setItem('invoices', JSON.stringify(state.invoices));
             } else if (iErr) {
                 console.error("Error fetching invoices:", iErr);
             }
@@ -550,8 +558,10 @@ const db = {
             // Fetch Users
             const { data: usrs, error: uErr } = await _supabase.from('users').select('*');
             if (!uErr && usrs) {
-                state.users = usrs;
-                localStorage.setItem('users', JSON.stringify(usrs));
+                const remoteIds = new Set(usrs.map(u => u.id.toString()));
+                const localOnly = state.users.filter(u => !remoteIds.has(u.id.toString()));
+                state.users = [...usrs, ...localOnly];
+                localStorage.setItem('users', JSON.stringify(state.users));
                 
                 // Ensure admin exists locally if not in remote
                 if (state.users.length === 0) {
@@ -1170,48 +1180,45 @@ const sales = {
         document.getElementById('cart-subtotal').innerText = total.toLocaleString();
         document.getElementById('cart-total').innerText = total.toLocaleString();
     },
-    checkout: () => {
+    checkout: async () => {
         if (state.cart.length === 0) {
             alert("السلة فارغة");
             return;
         }
 
         const invoice = {
-            id: (1000 + state.invoices.length + 1).toString(),
+            id: (state.invoices.length + 1001).toString() + "-" + Math.random().toString(36).substring(2, 5).toUpperCase(),
             date: new Date().toISOString(),
             items: state.cart.map(item => ({
                 id: item.id,
                 name: item.name,
                 price: item.price,
-                cost: item.cost || 0, // Store cost for profit calculation
+                cost: item.cost || 0,
                 quantity: item.quantity
             })),
             total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
             totalCost: state.cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0),
             profit: state.cart.reduce((sum, item) => sum + ((item.price - (item.cost || 0)) * item.quantity), 0),
-            userId: state.currentUser.id
+            userId: state.currentUser ? state.currentUser.id : 'guest'
         };
 
-        // Deduct stock
-        state.cart.forEach(cartItem => {
+        // Deduct stock and sync to Supabase
+        for (const cartItem of state.cart) {
             const p = state.products.find(prod => prod.id === cartItem.id);
             if (p) {
                 p.qty -= cartItem.quantity;
-                db.saveProduct(p); // Sync stock update
+                await db.saveProduct(p); // Wait for each stock update
             }
-        });
+        }
 
-        const success = await db.saveInvoice(invoice); // Sync invoice to Supabase
+        const success = await db.saveInvoice(invoice); 
         
         if (!success) {
-            // If sync fails, we still keep it locally but warn the user
             console.warn("Invoice saved locally only due to sync failure");
             alert("تم حفظ الفاتورة محلياً فقط. يرجى التأكد من الإنترنت للمزامنة لاحقاً.");
         }
         
-        // Always push to local state to show immediately
         state.invoices.push(invoice);
-        
         state.cart = [];
         
         localStorage.setItem('invoices', JSON.stringify(state.invoices));
