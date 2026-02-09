@@ -92,7 +92,10 @@
                         <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-300/50 group-focus-within:text-blue-400 transition-colors">
                             <i class="fas fa-lock"></i>
                         </span>
-                        <input type="password" id="login-password" class="block w-full pr-12 pl-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 transition-all text-lg" placeholder="••••••••">
+                        <input type="password" id="login-password" class="block w-full pr-12 pl-12 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 transition-all text-lg" placeholder="••••••••">
+                        <button onclick="ui.togglePassword('login-password', this)" class="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-300/50 hover:text-blue-400 transition-colors">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
                 </div>
                 
@@ -102,7 +105,7 @@
                 </button>
             </div>
             
-            <p id="login-error" class="text-red-400 text-center hidden text-sm font-medium animate-pulse">
+            <p id="login-error" class="text-red-400 text-center hidden text-sm font-bold bg-red-50/10 py-2 rounded-xl border border-red-500/20">
                 <i class="fas fa-circle-exclamation ml-1"></i> البيانات غير صحيحة
             </p>
         </div>
@@ -393,7 +396,7 @@
 // Supabase Configuration
 const SUPABASE_URL = 'https://fmjyfswvctbspdgccota.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtanlmc3d2Y3Ric3BkZ2Njb3RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjU3MzUsImV4cCI6MjA4NjI0MTczNX0.CUbOVb1ix8MpQ1ENHWFEPVBF78Du43RyCIeU8QRs3RY';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // State Management
 const state = {
@@ -417,21 +420,21 @@ const db = {
         
         try {
             // Fetch Products
-            const { data: prods, error: pErr } = await supabase.from('products').select('*');
+            const { data: prods, error: pErr } = await _supabase.from('products').select('*');
             if (!pErr && prods) {
                 state.products = prods;
                 localStorage.setItem('products', JSON.stringify(prods));
             }
 
             // Fetch Invoices
-            const { data: invs, error: iErr } = await supabase.from('invoices').select('*');
+            const { data: invs, error: iErr } = await _supabase.from('invoices').select('*');
             if (!iErr && invs) {
                 state.invoices = invs;
                 localStorage.setItem('invoices', JSON.stringify(invs));
             }
 
             // Fetch Users
-            const { data: usrs, error: uErr } = await supabase.from('users').select('*');
+            const { data: usrs, error: uErr } = await _supabase.from('users').select('*');
             if (!uErr && usrs) {
                 state.users = usrs;
                 localStorage.setItem('users', JSON.stringify(usrs));
@@ -454,27 +457,27 @@ const db = {
         }
     },
     saveProduct: async (product) => {
-        const { error } = await supabase.from('products').upsert(product);
+        const { error } = await _supabase.from('products').upsert(product);
         if (error) console.error("Error saving product:", error);
         return !error;
     },
     deleteProduct: async (id) => {
-        const { error } = await supabase.from('products').delete().eq('id', id);
+        const { error } = await _supabase.from('products').delete().eq('id', id);
         if (error) console.error("Error deleting product:", error);
         return !error;
     },
     saveInvoice: async (invoice) => {
-        const { error } = await supabase.from('invoices').insert(invoice);
+        const { error } = await _supabase.from('invoices').insert(invoice);
         if (error) console.error("Error saving invoice:", error);
         return !error;
     },
     saveUser: async (user) => {
-        const { error } = await supabase.from('users').upsert(user);
+        const { error } = await _supabase.from('users').upsert(user);
         if (error) console.error("Error saving user:", error);
         return !error;
     },
     deleteUser: async (id) => {
-        const { error } = await supabase.from('users').delete().eq('id', id);
+        const { error } = await _supabase.from('users').delete().eq('id', id);
         if (error) console.error("Error deleting user:", error);
         return !error;
     }
@@ -538,21 +541,32 @@ const auth = {
         const passInp = document.getElementById('login-password').value;
         const errorMsg = document.getElementById('login-error');
 
-        const user = state.users.find(u => u.username === userInp && u.password === passInp);
+        const user = state.users.find(u => u.username === userInp);
 
-        if (user) {
-            state.currentUser = user;
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            ui.showApp();
-            router.navigate('dashboard');
-            errorMsg.classList.add('hidden');
-        } else {
+        if (!user) {
+            errorMsg.innerHTML = '<i class="fas fa-circle-exclamation ml-1"></i> اسم المستخدم غير موجود';
             errorMsg.classList.remove('hidden');
-            // Shake effect
-            const loginBox = document.querySelector('#login-screen > div');
-            loginBox.classList.add('animate-bounce');
-            setTimeout(() => loginBox.classList.remove('animate-bounce'), 500);
+            auth.shakeLogin();
+            return;
         }
+
+        if (user.password !== passInp) {
+            errorMsg.innerHTML = '<i class="fas fa-circle-exclamation ml-1"></i> كلمة المرور غير صحيحة';
+            errorMsg.classList.remove('hidden');
+            auth.shakeLogin();
+            return;
+        }
+
+        state.currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        ui.showApp();
+        router.navigate('dashboard');
+        errorMsg.classList.add('hidden');
+    },
+    shakeLogin: () => {
+        const loginBox = document.querySelector('#login-screen > div');
+        loginBox.classList.add('animate-bounce');
+        setTimeout(() => loginBox.classList.remove('animate-bounce'), 500);
     },
     logout: () => {
         state.currentUser = null;
@@ -599,6 +613,17 @@ const ui = {
     closeModal: () => {
         document.getElementById('modal-overlay').classList.add('hidden');
         document.querySelectorAll('#modal-overlay > div').forEach(div => div.classList.add('hidden'));
+    },
+    togglePassword: (id, btn) => {
+        const input = document.getElementById(id);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
     },
     scanBarcode: (targetId) => {
         ui.showModal('barcode-scanner-modal');
