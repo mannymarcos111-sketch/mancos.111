@@ -1172,6 +1172,8 @@ const ui = {
         }
 
         state.scannerTargetId = targetId;
+        // Always force environment camera (back camera) on start
+        state.currentCameraFacing = "environment";
         ui.showModal('barcode-scanner-modal');
         
         // Optimized Scanner Config for Mobile
@@ -1227,10 +1229,18 @@ const ui = {
         ];
 
         state.html5QrCode.start(
-            { facingMode: state.currentCameraFacing }, 
+            { facingMode: { exact: "environment" } }, 
             { ...config, formatsToSupport: formats }, 
             onScanSuccess
         ).catch(err => {
+            console.warn("Exact environment camera failed, trying default environment:", err);
+            // Fallback to non-exact if exact fails
+            return state.html5QrCode.start(
+                { facingMode: "environment" }, 
+                { ...config, formatsToSupport: formats }, 
+                onScanSuccess
+            );
+        }).catch(err => {
             console.error("Camera error:", err);
             alert("تعذر فتح الكاميرا: " + err);
             ui.closeModal();
