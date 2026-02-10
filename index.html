@@ -23,14 +23,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @font-face {
+            font-family: 'Rakkas';
+            src: url('Rakkas-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
             font-family: 'RAOOF-REALROUND';
             src: url('RAOOF-REALROUND.otf') format('opentype');
             font-weight: normal;
             font-style: normal;
         }
         .app-logo {
-              font-family: 'RAOOF-REALROUND', sans-serif !important;
-              letter-spacing: 1px;
+              font-family: 'Rakkas', serif !important;
+              letter-spacing: 0.5px;
               display: inline-block;
               line-height: 1;
           }
@@ -694,28 +700,61 @@
         </div>
 
         <!-- Add User Modal -->
-        <div id="add-user-modal" class="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 hidden animate-slide-up">
-            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
-            <h3 class="text-2xl font-black mb-6 text-gray-900">إضافة مستخدم</h3>
-            <div class="space-y-5">
+        <div id="add-user-modal" class="fixed inset-0 bg-white z-[60] hidden flex flex-col animate-slide-up overflow-y-auto">
+            <!-- Header -->
+            <div class="sticky top-0 bg-white/80 backdrop-blur-md z-10 flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
+                <div class="flex items-center gap-4">
+                    <button onclick="ui.closeModal()" class="w-10 h-10 bg-gray-50 text-gray-900 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <h3 id="user-modal-title" class="text-xl font-black text-gray-900">إضافة مستخدم</h3>
+                </div>
+                <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+            </div>
+
+            <div class="p-8 space-y-5 flex-1">
+                <input type="hidden" id="editing-user-id">
                 <div class="space-y-2">
-                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">اسم المستخدم</label>
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">الاسم المستعار (يظهر في الفاتورة)</label>
+                    <input type="text" id="u-display-name" placeholder="مثلاً: منير (المدير العام)" class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 transition-all">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">اسم الدخول (Username)</label>
                     <input type="text" id="u-name" placeholder="اسم المستخدم" class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 transition-all">
                 </div>
                 <div class="space-y-2">
                     <label class="text-xs font-bold text-gray-400 mr-1 uppercase">كلمة المرور</label>
                     <input type="password" id="u-pass" placeholder="••••••••" class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 transition-all">
                 </div>
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">الصلاحية</label>
-                    <select id="u-role" class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 transition-all appearance-none">
-                        <option value="seller">بائع (صلاحيات محدودة)</option>
-                        <option value="admin">مدير (صلاحيات كاملة)</option>
-                    </select>
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">الصلاحيات</label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <label class="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl cursor-pointer active:scale-[0.98] transition-all">
+                            <input type="checkbox" id="perm-sell" class="w-5 h-5 rounded-md text-orange-600 focus:ring-orange-500 border-gray-300">
+                            <span class="font-bold text-gray-700">البيع (فاتورة جديدة)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl cursor-pointer active:scale-[0.98] transition-all">
+                            <input type="checkbox" id="perm-stock" class="w-5 h-5 rounded-md text-orange-600 focus:ring-orange-500 border-gray-300">
+                            <span class="font-bold text-gray-700">إدارة المخزن</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl cursor-pointer active:scale-[0.98] transition-all">
+                            <input type="checkbox" id="perm-reports" class="w-5 h-5 rounded-md text-orange-600 focus:ring-orange-500 border-gray-300">
+                            <span class="font-bold text-gray-700">التقارير والإحصائيات</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl cursor-pointer active:scale-[0.98] transition-all">
+                            <input type="checkbox" id="perm-delete" class="w-5 h-5 rounded-md text-red-600 focus:ring-red-500 border-gray-300">
+                            <span class="font-bold text-gray-700 text-red-600">حذف الفواتير</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-4 bg-orange-50 rounded-2xl cursor-pointer active:scale-[0.98] transition-all">
+                            <input type="checkbox" id="perm-admin" class="w-5 h-5 rounded-md text-orange-600 focus:ring-orange-500 border-gray-300">
+                            <span class="font-black text-orange-700">مدير عام (كامل الصلاحيات)</span>
+                        </label>
+                    </div>
                 </div>
-                <div class="flex gap-3 pt-4 pb-8">
-                    <button onclick="users.add()" class="flex-[2] bg-orange-600 text-white p-5 rounded-2xl font-black shadow-lg shadow-orange-100 active:scale-95 transition-transform">حفظ المستخدم</button>
-                    <button onclick="ui.closeModal()" class="flex-1 bg-gray-100 text-gray-500 p-5 rounded-2xl font-black active:scale-95 transition-transform">إلغاء</button>
+                <div class="flex gap-3 pt-4 pb-12">
+                    <button onclick="users.add()" class="w-full bg-orange-600 text-white p-5 rounded-2xl font-black shadow-lg shadow-orange-100 active:scale-95 transition-transform">حفظ وإغلاق</button>
                 </div>
             </div>
         </div>
@@ -835,6 +874,7 @@ const state = {
     currentView: 'dashboard',
     html5QrCode: null,
     currentCameraFacing: "environment",
+    isProcessingSale: false,
     scannerTargetId: null,
     isSyncing: false,
     selectedProductForCart: null,
@@ -868,25 +908,30 @@ const db = {
                 state.invoices = invs.map(inv => {
                     let items = [];
                     try {
-                        items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
+                        if (inv.items) {
+                            items = typeof inv.items === 'string' ? JSON.parse(inv.items) : inv.items;
+                        }
                     } catch (e) {
                         console.error("Error parsing items for invoice:", inv.id, e);
-                        items = [];
                     }
                     
-                    // Calculate cost and profit on the fly if missing
+                    if (!Array.isArray(items)) items = [];
+                    
+                    // Calculate totals on the fly if missing from database
                     const total_cost = items.reduce((sum, item) => {
-                        // If item has cost saved, use it. Otherwise, try to find current product cost
-                        let itemCost = item.cost;
-                        if (itemCost === undefined || itemCost === null || itemCost === 0) {
+                        let itemCost = Number(item.cost) || 0;
+                        if (itemCost === 0) {
                             const prod = prods.find(p => String(p.id) === String(item.id));
-                            itemCost = prod ? (prod.cost || 0) : 0;
+                            itemCost = prod ? (Number(prod.cost) || 0) : 0;
                         }
-                        return sum + (itemCost * item.quantity);
+                        return sum + (itemCost * (Number(item.quantity) || 0));
                     }, 0);
                     
+                    const total_price = items.reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.quantity) || 0)), 0);
+                    
+                    inv.total = (inv.total !== undefined && inv.total !== null) ? Number(inv.total) : total_price;
                     inv.total_cost = total_cost;
-                    inv.profit = (inv.total || 0) - total_cost;
+                    inv.profit = inv.total - total_cost;
                     
                     return { ...inv, items };
                 });
@@ -898,10 +943,41 @@ const db = {
             if (!uErr && usrs) {
                 state.users = usrs;
                 if (state.users.length === 0) {
-                    const admin = { id: '1', username: 'munir', password: 'mannym61', role: 'super_admin', name: 'منير (المدير العام)' };
+                    const admin = { id: '1', username: 'munir', password: 'mannym61', role: 'super_admin', name: 'منير (المدير العام)', created_at: new Date().toISOString() };
                     await db.saveUser(admin);
                     state.users = [admin];
                 }
+            }
+
+            // Fetch Settings
+            const { data: stngs, error: sErr } = await _supabase.from('settings').select('*');
+            if (!sErr && stngs) {
+                stngs.forEach(s => {
+                    if (s.key === 'shop_name') {
+                        state.shopName = s.value;
+                        localStorage.setItem('app_shop_name', s.value);
+                    }
+                    if (s.key === 'shop_logo') {
+                        state.shopLogo = s.value;
+                        localStorage.setItem('app_shop_logo', s.value);
+                    }
+                    if (s.key === 'shop_activity') {
+                        state.shopActivity = s.value;
+                        localStorage.setItem('app_shop_activity', s.value);
+                    }
+                    if (s.key === 'shop_phone') {
+                        state.shopPhone = s.value;
+                        localStorage.setItem('app_shop_phone', s.value);
+                    }
+                    if (s.key === 'currency') {
+                        state.currency = s.value;
+                        localStorage.setItem('app_currency', s.value);
+                    }
+                });
+                // Update UI titles/logo after settings fetch
+                document.title = state.shopName;
+                const logo = document.querySelector('.app-logo');
+                if (logo) logo.innerText = state.shopName;
             }
             
             router.navigate(state.currentView);
@@ -950,8 +1026,12 @@ const db = {
                 console.error("Supabase Invoice Error (Attempt 1 - Stringified):", error);
                 
                 // If it fails, try sending items as a raw array (in case the column is jsonb)
-                console.log("Retrying with raw items array...");
-                const { error: retryError } = await _supabase.from('invoices').upsert(coreData);
+            console.log("Retrying with raw items array...");
+            const dataToSaveRaw = {
+                ...coreData,
+                items: invoice.items // Send as raw array
+            };
+            const { error: retryError } = await _supabase.from('invoices').upsert(dataToSaveRaw);
                 
                 if (retryError) {
                     console.error("Supabase Invoice Error (Attempt 2 - Raw):", retryError);
@@ -1009,6 +1089,14 @@ if (state.users.length === 0) {
 // Router
 const router = {
     navigate: (view) => {
+        // Check Permissions for Routing
+        const role = state.currentUser.role || '';
+        const isSuper = role.includes('super_admin');
+        if (view === 'invoice' && !role.includes('seller') && !isSuper) return;
+        if (view === 'products' && !role.includes('stock') && !isSuper) return;
+        if (view === 'reports' && !role.includes('reports') && !isSuper) return;
+        if (view === 'users' && !isSuper) return;
+
         // Hide all views
         document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
         // Show target view
@@ -1052,6 +1140,12 @@ const auth = {
         const userInp = document.getElementById('login-username').value;
         const passInp = document.getElementById('login-password').value;
         const errorMsg = document.getElementById('login-error');
+
+        if (state.isSyncing && state.users.length === 0) {
+            errorMsg.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري مزامنة البيانات، يرجى المحاولة بعد لحظات...';
+            errorMsg.classList.remove('hidden');
+            return;
+        }
 
         const user = state.users.find(u => u.username === userInp);
 
@@ -1109,18 +1203,35 @@ const ui = {
         const currencySelect = document.getElementById('setting-currency');
         if (currencySelect) currencySelect.value = state.currency;
         
-        // Show/Hide user management based on role
-        const userMgmtBtn = document.getElementById('btn-user-mgmt');
-        const navUsers = document.getElementById('nav-users');
-        if (state.currentUser.role === 'super_admin') {
-            userMgmtBtn.classList.remove('hidden');
-            navUsers.classList.remove('hidden');
-        } else {
-            userMgmtBtn.classList.add('hidden');
-            navUsers.classList.add('hidden');
-        }
+        // Apply Permissions to UI
+        const role = state.currentUser.role || '';
+        const isSuper = role.includes('super_admin');
+        const isSeller = role.includes('seller') || isSuper;
+        const isStock = role.includes('stock') || isSuper;
+        const isReports = role.includes('reports') || isSuper;
+
+        // Header Title Mapping
+        let displayRole = 'موظف';
+        if (isSuper) displayRole = 'المدير العام';
+        else if (role.includes('seller')) displayRole = 'بائع';
+        else if (role.includes('stock')) displayRole = 'أمين مخزن';
+        else if (role.includes('reports')) displayRole = 'مدير تقارير';
         
-        document.getElementById('user-role-badge').innerText = state.currentUser.role === 'super_admin' ? 'المدير العام' : 'موظف مبيعات';
+        document.getElementById('user-role-badge').innerText = displayRole;
+
+        // Sidebar/Navigation Access
+        document.getElementById('btn-user-mgmt').classList.toggle('hidden', !isSuper);
+        document.getElementById('nav-users').classList.toggle('hidden', !isSuper);
+        
+        document.getElementById('nav-invoice').classList.toggle('hidden', !isSeller);
+        document.getElementById('nav-products').classList.toggle('hidden', !isStock);
+        document.getElementById('nav-reports').classList.toggle('hidden', !isReports);
+
+        // Dashboard Stat Cards Access
+        const statTodayProfit = document.getElementById('stat-today-profit')?.closest('.mobile-card');
+        const statTodaySales = document.getElementById('stat-today-sales')?.closest('.mobile-card');
+        if (statTodayProfit) statTodayProfit.classList.toggle('hidden', !isReports);
+        if (statTodaySales) statTodaySales.classList.toggle('hidden', !isReports);
     },
     showModal: (id) => {
         document.getElementById('modal-overlay').classList.remove('hidden');
@@ -1652,10 +1763,19 @@ const sales = {
 
         state.cart = invoice.items.map(item => {
             const p = state.products.find(prod => String(prod.id) === String(item.id));
-            return {
-                ...p,
-                quantity: item.quantity
-            };
+            if (p) {
+                return { ...p, quantity: item.quantity };
+            } else {
+                // Fallback if product no longer exists in current products list
+                return {
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    cost: item.cost || 0,
+                    quantity: item.quantity,
+                    qty: 0 // stock unknown
+                };
+            }
         });
 
         state.editingInvoiceId = id;
@@ -1676,7 +1796,7 @@ const sales = {
                 src: url('RAOOF-REALROUND.otf') format('opentype');
             }
             .invoice-container { font-family: 'Cairo', sans-serif !important; }
-            .shop-logo-text { font-family: 'RAOOF', 'Cairo', sans-serif !important; }
+            .shop-logo-text { font-family: 'Rakkas', 'Cairo', serif !important; }
         `;
 
         // Create a printable template
@@ -1710,14 +1830,23 @@ const sales = {
                         </tr>
                     </thead>
                     <tbody>
-                        ${items.length > 0 ? items.map(item => `
-                            <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 12px 10px; font-weight: bold;">${item.name}</td>
-                                <td style="padding: 12px 10px; text-align: center; font-weight: bold;">${item.quantity}</td>
-                                <td style="padding: 12px 10px; text-align: center;">${item.price.toLocaleString()}</td>
-                                <td style="padding: 12px 10px; text-align: left; font-weight: 900;">${(item.price * item.quantity).toLocaleString()}</td>
-                            </tr>
-                        `).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد منتجات</td></tr>`}
+                        ${items.length > 0 ? items.map(item => {
+                            try {
+                                const price = Number(item.price) || 0;
+                                const qty = Number(item.quantity) || 0;
+                                return `
+                                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                                        <td style="padding: 12px 10px; font-weight: bold;">${item.name || 'منتج غير معروف'}</td>
+                                        <td style="padding: 12px 10px; text-align: center; font-weight: bold;">${qty}</td>
+                                        <td style="padding: 12px 10px; text-align: center;">${price.toLocaleString()}</td>
+                                        <td style="padding: 12px 10px; text-align: left; font-weight: 900;">${(price * qty).toLocaleString()}</td>
+                                    </tr>
+                                `;
+                            } catch (e) {
+                                console.error("Error rendering item row:", item, e);
+                                return '';
+                            }
+                        }).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد منتجات</td></tr>`}
                     </tbody>
                 </table>
 
@@ -1725,11 +1854,11 @@ const sales = {
                     <div style="width: 250px; background: #f1f5f9; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; color: #000000;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span>الإجمالي الفرعي:</span>
-                            <span style="font-weight: bold;">${inv.total.toLocaleString()} ${state.currency}</span>
+                            <span style="font-weight: bold;">${(inv.total || 0).toLocaleString()} ${state.currency}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 20px; border-top: 2px solid #000000; padding-top: 10px; margin-top: 10px;">
                             <span>الإجمالي النهائي:</span>
-                            <span>${inv.total.toLocaleString()} ${state.currency}</span>
+                            <span>${(inv.total || 0).toLocaleString()} ${state.currency}</span>
                         </div>
                     </div>
                 </div>
@@ -1820,102 +1949,266 @@ const sales = {
             document.body.removeChild(element);
         }
     },
+    deleteInvoice: async (id) => {
+        // Check Permission
+        const role = state.currentUser.role || '';
+        if (!role.includes('delete_invoice') && !role.includes('super_admin')) {
+            alert("عذراً، لا تملك صلاحية حذف الفواتير. يرجى مراجعة المدير.");
+            return;
+        }
+
+        if (!confirm("هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إرجاع المنتجات إلى المخزن تلقائياً.")) return;
+        
+        try {
+            const inv = state.invoices.find(i => String(i.id) === String(id));
+            if (!inv) throw new Error("الفاتورة غير موجودة");
+
+            // 1. Restore stock for each item in the invoice
+            for (const item of inv.items) {
+                const product = state.products.find(p => String(p.id) === String(item.id));
+                if (product) {
+                    product.qty += item.quantity;
+                    await db.saveProduct(product); // Sync to Supabase
+                }
+            }
+
+            // 2. Delete invoice from Supabase
+            const { error } = await _supabase.from('invoices').delete().eq('id', id);
+            if (error) throw error;
+            
+            // 3. Update local state
+            state.invoices = state.invoices.filter(inv => String(inv.id) !== String(id));
+            
+            // 4. Refresh UI
+            reports.render();
+            ui.updateDashboardStats();
+            alert("تم حذف الفاتورة وإرجاع البضاعة للمخزن بنجاح");
+        } catch (err) {
+            console.error("Delete invoice error:", err);
+            alert("فشل حذف الفاتورة: " + err.message);
+        }
+    },
     checkout: async () => {
         if (state.cart.length === 0) {
             alert("السلة فارغة");
             return;
         }
 
-        const invoiceId = String(state.editingInvoiceId || Date.now());
-        
-        const invoice = {
-            id: invoiceId,
-            date: new Date().toISOString(),
-            items: state.cart.map(item => ({
-                id: String(item.id),
-                name: item.name,
-                price: item.price,
-                cost: item.cost || 0,
-                quantity: item.quantity
-            })),
-            total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-            total_cost: state.cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0),
-            profit: state.cart.reduce((sum, item) => sum + ((item.price - (item.cost || 0)) * item.quantity), 0),
-            user_id: state.currentUser ? state.currentUser.id : 'guest'
+        // Prevent duplicate clicks
+        if (state.isProcessingSale) return;
+        state.isProcessingSale = true;
+
+        // Show loading modal/overlay
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'sale-loading-overlay';
+        loadingOverlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center animate-fade-in';
+        loadingOverlay.innerHTML = `
+            <div class="bg-white rounded-[2.5rem] p-8 max-w-xs w-full text-center shadow-2xl animate-scale-in">
+                <div id="sale-loader" class="w-20 h-20 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+                <div id="sale-status-icon" class="hidden w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-check text-3xl"></i>
+                </div>
+                <h3 id="sale-status-title" class="text-xl font-black text-gray-900 mb-2">جاري إتمام البيع...</h3>
+                <p id="sale-status-msg" class="text-gray-400 font-bold text-sm">يرجى الانتظار، يتم الآن مزامنة البيانات</p>
+                <button id="sale-close-btn" class="hidden w-full mt-6 bg-gray-900 text-white p-4 rounded-2xl font-black active:scale-95 transition-transform">إغلاق</button>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+
+        const updateStatus = (success, message) => {
+            const loader = document.getElementById('sale-loader');
+            const icon = document.getElementById('sale-status-icon');
+            const title = document.getElementById('sale-status-title');
+            const msg = document.getElementById('sale-status-msg');
+            const btn = document.getElementById('sale-close-btn');
+
+            loader.classList.add('hidden');
+            icon.classList.remove('hidden');
+            
+            if (success) {
+                icon.className = "w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6";
+                icon.innerHTML = '<i class="fas fa-check text-3xl"></i>';
+                title.innerText = "تمت العملية!";
+                title.className = "text-xl font-black text-emerald-600 mb-2";
+            } else {
+                icon.className = "w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6";
+                icon.innerHTML = '<i class="fas fa-xmark text-3xl"></i>';
+                title.innerText = "فشلت العملية";
+                title.className = "text-xl font-black text-red-600 mb-2";
+            }
+            msg.innerText = message;
+            btn.classList.remove('hidden');
+            btn.onclick = () => {
+                document.body.removeChild(loadingOverlay);
+                if (success) {
+                    router.navigate('dashboard');
+                }
+            };
         };
 
-        // Deduct stock and sync to Supabase
-        for (const cartItem of state.cart) {
-            const p = state.products.find(prod => String(prod.id) === String(cartItem.id));
-            if (p) {
-                p.qty -= cartItem.quantity;
-                await db.saveProduct(p);
+        try {
+            const invoiceId = String(state.editingInvoiceId || Date.now());
+            const invoice = {
+                id: invoiceId,
+                date: new Date().toISOString(),
+                items: state.cart.map(item => ({
+                    id: String(item.id),
+                    name: item.name,
+                    price: item.price,
+                    cost: item.cost || 0,
+                    quantity: item.quantity
+                })),
+                total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                total_cost: state.cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0),
+                profit: state.cart.reduce((sum, item) => sum + ((item.price - (item.cost || 0)) * item.quantity), 0),
+                user_id: state.currentUser ? state.currentUser.id : 'guest'
+            };
+
+            // Deduct stock and sync to Supabase
+            for (const cartItem of state.cart) {
+                const p = state.products.find(prod => String(prod.id) === String(cartItem.id));
+                if (p) {
+                    p.qty -= cartItem.quantity;
+                    await db.saveProduct(p);
+                }
             }
-        }
 
-        const success = await db.saveInvoice(invoice); 
-        
-        if (!success) {
-            alert("فشل حفظ الفاتورة سحابياً. يرجى التأكد من الإنترنت.");
-            return;
-        }
-        
-        if (state.editingInvoiceId) {
-            const index = state.invoices.findIndex(inv => String(inv.id) === String(state.editingInvoiceId));
-            if (index !== -1) state.invoices[index] = invoice;
-        } else {
-            state.invoices.unshift(invoice);
-        }
+            const success = await db.saveInvoice(invoice); 
+            
+            if (!success) {
+                throw new Error("فشل حفظ الفاتورة سحابياً. يرجى التأكد من الإنترنت.");
+            }
+            
+            if (state.editingInvoiceId) {
+                const index = state.invoices.findIndex(inv => String(inv.id) === String(state.editingInvoiceId));
+                if (index !== -1) state.invoices[index] = invoice;
+            } else {
+                state.invoices.unshift(invoice);
+            }
 
-        state.cart = [];
-        state.editingInvoiceId = null;
-        
-        // Success notification with print option
-        const printNow = confirm("تم إتمام العملية بنجاح! رقم الفاتورة: " + invoice.id + "\n\nهل تريد طباعة الفاتورة الآن؟");
-        if (printNow) {
-            sales.printInvoice(invoice.id);
+            state.cart = [];
+            state.editingInvoiceId = null;
+            
+            updateStatus(true, "تم إتمام عملية البيع وحفظ الفاتورة رقم: " + invoice.id);
+
+            // Optional Print Check after status overlay is closed or directly
+            const printBtn = document.getElementById('sale-close-btn');
+            const originalClick = printBtn.onclick;
+            printBtn.onclick = () => {
+                originalClick();
+                if (confirm("هل تريد طباعة الفاتورة الآن؟")) {
+                    sales.printInvoice(invoice.id);
+                }
+            };
+
+        } catch (err) {
+            console.error("Checkout error:", err);
+            updateStatus(false, err.message || "حدث خطأ غير متوقع أثناء إتمام البيع");
+        } finally {
+            state.isProcessingSale = false;
         }
-        
-        router.navigate('dashboard');
     }
 };
 
 // User Management
 const users = {
     openModal: () => {
+        document.getElementById('user-modal-title').innerText = 'إضافة مستخدم';
+        document.getElementById('editing-user-id').value = '';
+        document.getElementById('u-display-name').value = '';
         document.getElementById('u-name').value = '';
         document.getElementById('u-pass').value = '';
-        document.getElementById('u-role').value = 'sales';
+        // Reset checkboxes
+        document.getElementById('perm-sell').checked = true;
+        document.getElementById('perm-stock').checked = false;
+        document.getElementById('perm-reports').checked = false;
+        document.getElementById('perm-delete').checked = false;
+        document.getElementById('perm-admin').checked = false;
         ui.showModal('add-user-modal');
     },
-    add: () => {
+    edit: (id) => {
+        const user = state.users.find(u => String(u.id) === String(id));
+        if (!user) return;
+
+        document.getElementById('user-modal-title').innerText = 'تعديل مستخدم';
+        document.getElementById('editing-user-id').value = id;
+        document.getElementById('u-display-name').value = user.name || '';
+        document.getElementById('u-name').value = user.username || '';
+        document.getElementById('u-pass').value = user.password || '';
+        
+        const perms = (user.role || '').split(',');
+        document.getElementById('perm-sell').checked = perms.includes('seller');
+        document.getElementById('perm-stock').checked = perms.includes('stock');
+        document.getElementById('perm-reports').checked = perms.includes('reports');
+        document.getElementById('perm-delete').checked = perms.includes('delete_invoice');
+        document.getElementById('perm-admin').checked = perms.includes('super_admin');
+        
+        ui.showModal('add-user-modal');
+    },
+    add: async () => {
+        const displayName = document.getElementById('u-display-name').value;
         const username = document.getElementById('u-name').value;
         const password = document.getElementById('u-pass').value;
-        const role = document.getElementById('u-role').value;
+        const editingId = document.getElementById('editing-user-id').value;
+        
+        // Collect permissions
+        const perms = [];
+        if (document.getElementById('perm-admin').checked) perms.push('super_admin');
+        if (document.getElementById('perm-sell').checked) perms.push('seller');
+        if (document.getElementById('perm-stock').checked) perms.push('stock');
+        if (document.getElementById('perm-reports').checked) perms.push('reports');
+        if (document.getElementById('perm-delete').checked) perms.push('delete_invoice');
 
-        if (!username || !password) {
+        if (!username || !password || !displayName) {
             alert("يرجى إكمال البيانات");
             return;
         }
 
-        if (state.users.find(u => u.username === username)) {
-            alert("اسم المستخدم موجود مسبقاً");
+        if (perms.length === 0) {
+            alert("يرجى اختيار صلاحية واحدة على الأقل");
             return;
         }
 
-        const newUser = {
-            id: Date.now().toString(),
-            username,
-            password,
-            role,
-            name: username
-        };
+        if (editingId) {
+            // Update existing user
+            const userIndex = state.users.findIndex(u => String(u.id) === String(editingId));
+            if (userIndex !== -1) {
+                const updatedUser = {
+                    ...state.users[userIndex],
+                    username,
+                    password,
+                    role: perms.join(','),
+                    name: displayName
+                };
+                
+                const success = await db.saveUser(updatedUser);
+                if (success) {
+                    state.users[userIndex] = updatedUser;
+                    alert("تم تحديث بيانات المستخدم بنجاح");
+                }
+            }
+        } else {
+            // Add new user
+            if (state.users.find(u => u.username === username)) {
+                alert("اسم المستخدم موجود مسبقاً");
+                return;
+            }
 
-        state.users.push(newUser);
-        db.saveUser(newUser); // Sync user to Supabase
-        
-        document.getElementById('u-name').value = '';
-        document.getElementById('u-pass').value = '';
+            const newUser = {
+                id: Date.now().toString(),
+                username,
+                password,
+                role: perms.join(','),
+                name: displayName,
+                created_at: new Date().toISOString()
+            };
+
+            const success = await db.saveUser(newUser);
+            if (success) {
+                state.users.push(newUser);
+                alert("تم إضافة المستخدم بنجاح");
+            }
+        }
         
         ui.closeModal();
         users.render();
@@ -1923,7 +2216,8 @@ const users = {
     render: () => {
         const container = document.getElementById('users-list');
         // Only show for super admin
-        if (state.currentUser.role !== 'super_admin') {
+        const currentUserRole = state.currentUser.role || '';
+        if (!currentUserRole.includes('super_admin')) {
             container.innerHTML = `
                 <div class="mobile-card p-10 text-center">
                     <i class="fas fa-lock text-red-400 text-4xl mb-4"></i>
@@ -1933,28 +2227,46 @@ const users = {
             return;
         }
 
-        container.innerHTML = state.users.map(u => `
+        const roleNames = {
+            'super_admin': 'مدير عام',
+            'seller': 'بيع',
+            'stock': 'مخزن',
+            'reports': 'تقارير',
+            'delete_invoice': 'حذف'
+        };
+
+        container.innerHTML = state.users.map(u => {
+            const roles = (u.role || '').split(',');
+            const displayRoles = roles.map(r => roleNames[r] || r).join(' - ');
+            const isSuper = roles.includes('super_admin');
+
+            return `
             <div class="mobile-card p-5 flex items-center justify-between animate-slide-up">
                 <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 ${u.role === 'super_admin' ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-500'} rounded-2xl flex items-center justify-center">
-                        <i class="fas ${u.role === 'super_admin' ? 'fa-user-shield' : 'fa-user'} text-xl"></i>
+                    <div class="w-14 h-14 ${isSuper ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-500'} rounded-2xl flex items-center justify-center">
+                        <i class="fas ${isSuper ? 'fa-user-shield' : 'fa-user'} text-xl"></i>
                     </div>
                     <div>
                         <h4 class="font-black text-gray-900">${u.name}</h4>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${u.role === 'super_admin' ? 'المدير العام' : 'موظف مبيعات'}</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${u.username} | ${displayRoles || 'بدون صلاحيات'}</p>
                     </div>
                 </div>
-                ${u.role !== 'super_admin' ? `
-                    <button onclick="users.delete('${u.id}')" class="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
-                        <i class="fas fa-trash-can text-sm"></i>
+                <div class="flex items-center gap-2">
+                    <button onclick="users.edit('${u.id}')" class="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                        <i class="fas fa-edit text-sm"></i>
                     </button>
-                ` : `
-                    <span class="w-10 h-10 bg-slate-50 text-slate-300 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-check-double text-sm"></i>
-                    </span>
-                `}
+                    ${!isSuper ? `
+                        <button onclick="users.delete('${u.id}')" class="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                            <i class="fas fa-trash-can text-sm"></i>
+                        </button>
+                    ` : `
+                        <span class="w-10 h-10 bg-slate-50 text-slate-300 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-double text-sm"></i>
+                        </span>
+                    `}
+                </div>
             </div>
-        `).join('');
+        `}).join('');
     },
     delete: (id) => {
         if(confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
@@ -2155,6 +2467,9 @@ const reports = {
                             </button>
                             <button onclick="sales.editInvoice('${inv.id}')" class="w-9 h-9 bg-gray-100 text-gray-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform">
                                 <i class="fas fa-edit text-xs"></i>
+                            </button>
+                            <button onclick="sales.deleteInvoice('${inv.id}')" class="w-9 h-9 bg-red-50 text-red-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform">
+                                <i class="fas fa-trash-can text-xs"></i>
                             </button>
                         </div>
                     </div>
