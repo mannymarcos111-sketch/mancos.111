@@ -7,12 +7,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
     <title>بزنس - نظام إدارة المبيعات</title>
+    <script>
+        // Suppress Tailwind CDN production warning
+        const originalWarn = console.warn;
+        console.warn = (...args) => {
+            if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
+            originalWarn.apply(console, args);
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
+        @font-face {
+            font-family: 'RAOOF-REALROUND';
+            src: url('RAOOF-REALROUND.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        .app-logo {
+              font-family: 'RAOOF-REALROUND', sans-serif !important;
+              letter-spacing: 1px;
+              display: inline-block;
+              line-height: 1;
+          }
         body {
             font-family: 'Cairo', 'Tajawal', sans-serif;
             background-color: #f1f5f9;
@@ -54,6 +75,79 @@
         ::-webkit-scrollbar {
             display: none;
         }
+
+        /* Dark Mode Professional Overrides */
+        body.dark {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        body.dark .mobile-card, 
+        body.dark header, 
+        body.dark nav,
+        body.dark .bg-white,
+        body.dark [id$="-modal"] {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        body.dark .text-gray-900,
+        body.dark .text-gray-800,
+        body.dark .text-gray-700,
+        body.dark h2, body.dark h3, body.dark h4 {
+            color: #f8fafc !important;
+        }
+        body.dark .text-gray-400,
+        body.dark .text-gray-500,
+        body.dark .text-gray-600 {
+            color: #94a3b8 !important;
+        }
+        body.dark .bg-gray-50,
+        body.dark .bg-gray-100,
+        body.dark .bg-slate-50,
+        body.dark .bg-blue-50,
+        body.dark .bg-emerald-50,
+        body.dark .bg-purple-50,
+        body.dark .bg-orange-50,
+        body.dark .bg-red-50 {
+            background-color: rgba(15, 23, 42, 0.6) !important;
+        }
+        body.dark .text-blue-600, body.dark .text-blue-500 { color: #60a5fa !important; }
+        body.dark .text-emerald-600, body.dark .text-emerald-500 { color: #34d399 !important; }
+        body.dark .text-orange-600, body.dark .text-orange-500 { color: #fb923c !important; }
+        body.dark .text-red-600, body.dark .text-red-500 { color: #f87171 !important; }
+        body.dark .text-purple-600, body.dark .text-purple-500 { color: #c084fc !important; }
+
+        body.dark input, 
+        body.dark select,
+        body.dark textarea {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+        }
+        body.dark .border-gray-100,
+        body.dark .border-gray-200,
+        body.dark .border-slate-100,
+        body.dark .border-blue-100 {
+            border-color: #334155 !important;
+        }
+        body.dark .glass-effect {
+            background: rgba(30, 41, 59, 0.85);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        body.dark #dark-mode-toggle-bg {
+            background-color: #2563eb !important;
+        }
+        body.dark #dark-mode-toggle-circle {
+            transform: translateX(-24px);
+            background-color: #ffffff !important;
+        }
+        body.dark #dark-mode-icon-bg {
+            background-color: #facc15 !important;
+            color: #0f172a !important;
+        }
+        /* Fix shadows in dark mode */
+        body.dark .shadow-lg, body.dark .shadow-xl, body.dark .shadow-sm, body.dark .shadow-blue-100 {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -67,7 +161,7 @@
         <div class="w-full max-w-sm bg-white/10 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 space-y-8 animate-slide-up relative z-10">
             <div class="text-center space-y-4">
                 <div class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl shadow-xl shadow-blue-900/40 rotate-2">
-                    <span class="text-4xl font-black text-white tracking-tighter">بزنس</span>
+                    <span class="text-5xl font-black text-white app-logo">بزنس</span>
                 </div>
                 <div>
                     <p class="text-blue-200/70 text-sm mt-1">سجل دخولك للمتابعة</p>
@@ -115,8 +209,11 @@
         <!-- Header -->
         <header class="bg-white/80 backdrop-blur-md px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 z-30 safe-area-top border-b border-gray-100">
             <div class="flex items-center gap-3">
+                <button onclick="ui.showModal('settings-modal')" class="w-10 h-10 bg-gray-50 text-gray-500 rounded-xl flex items-center justify-center btn-active ml-1">
+                    <i class="fas fa-bars text-lg"></i>
+                </button>
                 <div class="px-4 py-2 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-100">
-                    <span class="text-white font-black text-lg tracking-tighter">بزنس</span>
+                    <span class="text-white font-black text-2xl app-logo">بزنس</span>
                 </div>
                 <div>
                     <h2 class="font-extrabold text-gray-900 text-lg leading-tight" id="header-title">الرئيسية</h2>
@@ -138,23 +235,30 @@
             <div id="view-dashboard" class="space-y-8 animate-slide-up">
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="mobile-card p-5 relative overflow-hidden group active:scale-95 transition-transform">
-                        <div class="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full group-hover:scale-110 transition-transform"></div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">مبيعات اليوم</p>
+                    <div class="mobile-card p-5 relative overflow-hidden group active:scale-95 transition-transform col-span-2 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-100">
+                        <div class="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full group-hover:scale-110 transition-transform"></div>
+                        <p class="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">مبيعات اليوم</p>
                         <div class="flex items-baseline gap-1">
-                            <h3 class="text-2xl font-black text-gray-900" id="stat-today-sales">0</h3>
-                            <span class="text-[10px] font-bold text-gray-400">د.ج</span>
-                        </div>
-                        <div class="mt-3 flex items-center gap-1 text-green-500 bg-green-50 w-fit px-2 py-0.5 rounded-full text-[10px] font-bold">
-                            <i class="fas fa-caret-up"></i> 12%
+                            <h3 class="text-3xl font-black" id="stat-today-sales">0</h3>
+                            <span class="text-xs font-bold text-blue-200 app-currency-label">${state.currency}</span>
                         </div>
                     </div>
+                    
+                    <div class="mobile-card p-5 relative overflow-hidden group active:scale-95 transition-transform bg-emerald-500 text-white shadow-lg shadow-emerald-100">
+                        <div class="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full group-hover:scale-110 transition-transform"></div>
+                        <p class="text-emerald-100 text-xs font-bold uppercase tracking-wider mb-1">أرباح اليوم</p>
+                        <div class="flex items-baseline gap-1">
+                            <h3 class="text-2xl font-black" id="stat-today-profit">0</h3>
+                            <span class="text-[10px] font-bold text-emerald-100 app-currency-label">${state.currency}</span>
+                        </div>
+                    </div>
+
                     <div class="mobile-card p-5 relative overflow-hidden group active:scale-95 transition-transform">
                         <div class="absolute -right-4 -top-4 w-16 h-16 bg-purple-500/10 rounded-full group-hover:scale-110 transition-transform"></div>
                         <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">المخزن</p>
-                        <h3 class="text-2xl font-black text-gray-900" id="stat-total-products">0</h3>
-                        <div class="mt-3 flex items-center gap-1 text-purple-500 bg-purple-50 w-fit px-2 py-0.5 rounded-full text-[10px] font-bold">
-                            <i class="fas fa-box-open"></i> منتج
+                        <div class="flex items-baseline gap-1">
+                            <h3 class="text-2xl font-black text-gray-900" id="stat-total-products">0</h3>
+                            <span class="text-[10px] font-bold text-gray-400">منتج</span>
                         </div>
                     </div>
                 </div>
@@ -190,7 +294,7 @@
                 <div class="space-y-4">
                     <div class="flex items-center justify-between px-1">
                         <h3 class="font-black text-gray-900 text-xl tracking-tight">آخر العمليات</h3>
-                        <button class="text-blue-600 text-sm font-bold bg-blue-50 px-3 py-1 rounded-full active:scale-95 transition-transform">الكل</button>
+                        <button onclick="router.navigate('reports')" class="text-blue-600 text-sm font-bold bg-blue-50 px-3 py-1 rounded-full active:scale-95 transition-transform">الكل</button>
                     </div>
                     <div id="recent-invoices-list" class="space-y-3">
                         <div class="mobile-card p-8 text-center">
@@ -206,7 +310,7 @@
             <!-- Products View -->
             <div id="view-products" class="hidden space-y-4 animate-fade-in">
                 <div class="flex gap-2">
-                    <button onclick="ui.showModal('add-product-modal')" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                    <button onclick="products.openModal()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2">
                         <i class="fas fa-plus"></i> إضافة منتج
                     </button>
                     <button onclick="ui.scanBarcode()" class="bg-gray-800 text-white p-3 rounded-xl w-14 flex items-center justify-center">
@@ -246,9 +350,9 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="ui.showModal('add-to-cart-modal')" class="bg-blue-600 text-white p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-2">
-                        <i class="fas fa-search text-xl"></i>
-                        <span class="text-xs">بحث يدوي</span>
+                    <button onclick="sales.openProductSelection()" class="bg-blue-600 text-white p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-2">
+                        <i class="fas fa-list-ul text-xl"></i>
+                        <span class="text-xs">اختيار سلعة</span>
                     </button>
                     <button onclick="ui.scanBarcode()" class="bg-gray-800 text-white p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-2">
                         <i class="fas fa-barcode text-xl"></i>
@@ -262,7 +366,7 @@
 
             <!-- Users View -->
             <div id="view-users" class="hidden space-y-4 animate-fade-in">
-                <button onclick="ui.showModal('add-user-modal')" class="w-full bg-orange-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2">
+                <button onclick="users.openModal()" class="w-full bg-orange-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2">
                     <i class="fas fa-user-plus"></i> إضافة مستخدم جديد
                 </button>
                 <div id="users-list" class="space-y-3">
@@ -272,52 +376,111 @@
 
             <!-- Reports View -->
             <div id="view-reports" class="hidden space-y-6 animate-fade-in pb-10">
-                <div class="space-y-2">
-                    <h2 class="text-2xl font-black text-gray-900">التقارير المالية</h2>
-                    <p class="text-gray-400 font-bold text-xs uppercase tracking-widest">تحليل الأرباح والمبيعات</p>
+                <div class="flex items-center justify-between">
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-black text-gray-900">التقارير المالية</h2>
+                        <p class="text-gray-400 font-bold text-[10px] uppercase tracking-widest">تحليل الأداء والمخزون</p>
+                    </div>
                 </div>
 
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                                <i class="fas fa-sack-dollar text-xl"></i>
+                <!-- Report Type Tabs -->
+                <div class="flex p-1 bg-gray-100 rounded-2xl">
+                    <button onclick="reports.switchTab('sales', this)" class="report-tab-btn flex-1 py-3 rounded-xl font-black text-xs transition-all bg-white shadow-sm text-blue-600">
+                        <i class="fas fa-chart-line ml-1"></i> المبيعات
+                    </button>
+                    <button onclick="reports.switchTab('inventory', this)" class="report-tab-btn flex-1 py-3 rounded-xl font-black text-xs transition-all text-gray-400">
+                        <i class="fas fa-warehouse ml-1"></i> المخزن
+                    </button>
+                </div>
+
+                <!-- Sales Report Section -->
+                <div id="report-sales-section" class="space-y-6">
+                    <!-- Sales Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                                    <i class="fas fa-sack-dollar text-xl"></i>
+                                </div>
+                                <span class="text-[10px] font-black bg-white/20 px-3 py-1 rounded-full uppercase">إجمالي المبيعات</span>
                             </div>
-                            <span class="text-[10px] font-black bg-white/20 px-3 py-1 rounded-full uppercase">إجمالي المبيعات</span>
+                            <h3 id="report-total-sales" class="text-4xl font-black mb-1">0</h3>
+                            <p class="text-blue-100 text-xs font-bold report-currency-label">${state.currency}</p>
                         </div>
-                        <h3 id="report-total-sales" class="text-4xl font-black mb-1">0</h3>
-                        <p class="text-blue-100 text-xs font-bold">دج جزائري</p>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
+                                <p class="text-gray-400 font-black text-[10px] uppercase mb-2">إجمالي التكلفة</p>
+                                <h4 id="report-total-cost" class="text-lg font-black text-gray-900">0</h4>
+                            </div>
+                            <div class="bg-emerald-500 p-5 rounded-[2rem] text-white shadow-lg shadow-emerald-50">
+                                <div class="flex justify-between items-start">
+                                    <p class="text-emerald-100 font-black text-[10px] uppercase mb-2">صافي الربح</p>
+                                    <span id="report-profit-margin" class="text-[9px] font-black bg-white/20 px-2 py-0.5 rounded-md">0%</span>
+                                </div>
+                                <h4 id="report-total-profit" class="text-lg font-black">0</h4>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
-                            <p class="text-gray-400 font-black text-[10px] uppercase mb-2">التكلفة</p>
-                            <h4 id="report-total-cost" class="text-lg font-black text-gray-900">0</h4>
-                        </div>
-                        <div class="bg-emerald-500 p-5 rounded-[2rem] text-white shadow-lg shadow-emerald-50">
-                            <p class="text-emerald-100 font-black text-[10px] uppercase mb-2">صافي الربح</p>
-                            <h4 id="report-total-profit" class="text-lg font-black">0</h4>
+
+                    <!-- Date Filters -->
+                    <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                        <button onclick="reports.filter('today', this)" class="report-filter-btn active bg-gray-900 text-white px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">اليوم</button>
+                        <button onclick="reports.filter('week', this)" class="report-filter-btn bg-white text-gray-400 px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">أسبوع</button>
+                        <button onclick="reports.filter('month', this)" class="report-filter-btn bg-white text-gray-400 px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">شهر</button>
+                        <button onclick="reports.filter('all', this)" class="report-filter-btn bg-white text-gray-400 px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">الكل</button>
+                    </div>
+
+                    <!-- Transactions -->
+                    <div class="space-y-3">
+                        <h3 class="font-black text-gray-900 text-sm flex items-center gap-2">
+                            <i class="fas fa-list-ul text-blue-500"></i>
+                            سجل العمليات
+                        </h3>
+                        <div id="reports-list" class="space-y-3">
+                            <!-- Transactions injected here -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Date Filters -->
-                <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                    <button onclick="reports.filter('today', this)" class="report-filter-btn active bg-gray-900 text-white px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">اليوم</button>
-                    <button onclick="reports.filter('week', this)" class="report-filter-btn bg-white text-gray-400 px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">أسبوع</button>
-                    <button onclick="reports.filter('month', this)" class="report-filter-btn bg-white text-gray-400 px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">شهر</button>
-                    <button onclick="reports.filter('all', this)" class="report-filter-btn bg-white text-gray-400 px-5 py-3 rounded-2xl font-black text-xs whitespace-nowrap">الكل</button>
-                </div>
+                <!-- Inventory Report Section -->
+                <div id="report-inventory-section" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2rem] text-white shadow-xl shadow-slate-100">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                                    <i class="fas fa-warehouse text-xl"></i>
+                                </div>
+                                <span class="text-[10px] font-black bg-white/10 px-3 py-1 rounded-full uppercase">قيمة المخزن (تكلفة)</span>
+                            </div>
+                            <h3 id="report-inventory-cost" class="text-3xl font-black mb-1">0</h3>
+                            <p class="text-slate-400 text-xs font-bold report-currency-label">${state.currency}</p>
+                        </div>
 
-                <!-- Transactions -->
-                <div class="space-y-3">
-                    <h3 class="font-black text-gray-900 text-sm flex items-center gap-2">
-                        <i class="fas fa-list-ul text-blue-500"></i>
-                        سجل العمليات
-                    </h3>
-                    <div id="reports-list" class="space-y-3">
-                        <!-- Transactions injected here -->
+                        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                                    <i class="fas fa-tags text-xl"></i>
+                                </div>
+                                <span class="text-[10px] font-black bg-white/10 px-3 py-1 rounded-full uppercase">قيمة المخزن (بيع)</span>
+                            </div>
+                            <h3 id="report-inventory-sell" class="text-3xl font-black mb-1">0</h3>
+                            <p class="text-blue-100 text-xs font-bold report-currency-label">${state.currency}</p>
+                        </div>
+
+                        <div class="bg-emerald-500 p-6 rounded-[2rem] text-white shadow-xl shadow-emerald-100">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                                    <i class="fas fa-chart-pie text-xl"></i>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-black bg-white/10 px-3 py-1 rounded-full uppercase">الربح المتوقع</span>
+                                    <span id="report-inventory-margin" class="block text-[10px] font-black mt-1">هامش: 0%</span>
+                                </div>
+                            </div>
+                            <h3 id="report-inventory-profit" class="text-3xl font-black mb-1">0</h3>
+                            <p class="text-emerald-100 text-xs font-bold report-currency-label">${state.currency}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -402,6 +565,134 @@
             </div>
         </div>
 
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="fixed inset-0 bg-white z-[60] hidden flex flex-col animate-slide-up overflow-y-auto">
+            <!-- Header -->
+            <div class="sticky top-0 bg-white/80 backdrop-blur-md z-10 flex items-center justify-between p-6 border-bottom border-gray-100 shrink-0">
+                <div class="flex items-center gap-4">
+                    <button onclick="ui.closeModal()" class="w-10 h-10 bg-gray-50 text-gray-900 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <h3 class="text-xl font-black text-gray-900">إعدادات النظام</h3>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-cog"></i>
+                </div>
+            </div>
+            
+            <div class="p-8 space-y-8 flex-1">
+                <!-- Shop Logo Setting -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">شعار النشاط</label>
+                    <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                        <div id="logo-preview-container" class="w-16 h-16 bg-white rounded-xl border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                            <img id="setting-logo-preview" src="" class="hidden w-full h-full object-contain">
+                            <i id="setting-logo-placeholder" class="fas fa-image text-gray-300 text-2xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <input type="file" id="setting-shop-logo" accept="image/*" onchange="settings.updateLogo(this)" class="hidden">
+                            <button onclick="document.getElementById('setting-shop-logo').click()" class="w-full bg-white text-gray-700 py-2 px-4 rounded-xl font-bold text-sm shadow-sm border border-gray-100 active:scale-95 transition-all">
+                                <i class="fas fa-upload ml-1 text-blue-500"></i> اختر صورة
+                            </button>
+                            <p class="text-[10px] text-gray-400 mt-1 mr-1">يفضل صورة مربعة بخلفية بيضاء</p>
+                        </div>
+                        <button onclick="settings.removeLogo()" id="remove-logo-btn" class="hidden w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Shop Name Setting -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">اسم النشاط (يظهر في الفاتورة)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">
+                            <i class="fas fa-store"></i>
+                        </span>
+                        <input type="text" id="setting-shop-name" 
+                            onchange="settings.updateShopName(this.value)" 
+                            class="w-full p-4 pr-12 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all font-bold"
+                            placeholder="اسم النشاط الخاص بك">
+                    </div>
+                </div>
+
+                <!-- Shop Activity Setting -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">النشاط التجاري (مثلاً: بيع وصيانة الهواتف)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">
+                            <i class="fas fa-briefcase"></i>
+                        </span>
+                        <input type="text" id="setting-shop-activity" 
+                            onchange="settings.updateShopActivity(this.value)" 
+                            class="w-full p-4 pr-12 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all font-bold"
+                            placeholder="ماذا يبيع النشاط؟">
+                    </div>
+                </div>
+
+                <!-- Shop Phone Setting -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">رقم الهاتف</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">
+                            <i class="fas fa-phone"></i>
+                        </span>
+                        <input type="text" id="setting-shop-phone" 
+                            onchange="settings.updateShopPhone(this.value)" 
+                            class="w-full p-4 pr-12 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all font-bold"
+                            placeholder="رقم التواصل">
+                    </div>
+                </div>
+
+                <!-- Currency Setting -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">عملة البرنامج</label>
+                    <div class="relative group">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </span>
+                        <select id="setting-currency" onchange="settings.updateCurrency(this.value)" class="w-full p-4 pr-12 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all appearance-none font-bold">
+                            <option value="د.ج">دينار جزائري (د.ج)</option>
+                            <option value="د.ل">دينار ليبي (د.ل)</option>
+                            <option value="ج.م">جنيه مصري (ج.م)</option>
+                            <option value="د.ت">دينار تونسي (د.ت)</option>
+                            <option value="USD">دولار أمريكي ($)</option>
+                            <option value="EUR">يورو (€)</option>
+                        </select>
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 pointer-events-none">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- More settings -->
+                <div class="space-y-4">
+                    <label class="text-xs font-bold text-gray-400 mr-1 uppercase">مظهر التطبيق</label>
+                    <div onclick="settings.toggleDarkMode()" class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-900 text-white" id="dark-mode-icon-bg">
+                                <i class="fas fa-moon" id="dark-mode-icon"></i>
+                            </div>
+                            <span class="font-bold text-gray-700">الوضع المظلم</span>
+                        </div>
+                        <div class="w-14 h-8 bg-gray-200 rounded-full relative transition-colors duration-300" id="dark-mode-toggle-bg">
+                            <div class="absolute top-1 right-1 w-6 h-6 bg-white rounded-full shadow-sm transition-transform duration-300" id="dark-mode-toggle-circle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tip -->
+                <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                    <p class="text-[10px] font-black text-blue-600 uppercase mb-1">تلميح</p>
+                    <p class="text-xs text-blue-500 font-bold leading-relaxed">سيتم إضافة المزيد من الإعدادات قريباً للتحكم الكامل في النظام.</p>
+                </div>
+
+                <div class="flex gap-3 pt-4 pb-12">
+                    <button onclick="ui.closeModal()" class="w-full bg-gray-900 text-white p-5 rounded-2xl font-black shadow-lg shadow-gray-200 active:scale-95 transition-transform">حفظ وإغلاق</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Add User Modal -->
         <div id="add-user-modal" class="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 hidden animate-slide-up">
             <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
@@ -444,6 +735,33 @@
                 <!-- Products will appear here for selection -->
             </div>
             <button onclick="ui.closeModal()" class="mt-4 w-full bg-gray-900 text-white p-5 rounded-2xl font-black active:scale-95 transition-transform shrink-0 mb-4">تم</button>
+        </div>
+
+        <!-- Quantity Selection Modal -->
+        <div id="quantity-modal" class="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 hidden animate-slide-up">
+            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+            <h3 class="text-2xl font-black mb-6 text-gray-900 text-center">تحديد الكمية</h3>
+            <div class="space-y-6">
+                <div class="text-center">
+                    <p id="q-product-name" class="font-black text-gray-900 text-lg mb-1"></p>
+                    <p id="q-product-stock" class="text-xs font-bold text-gray-400 uppercase tracking-widest"></p>
+                </div>
+                
+                <div class="flex items-center justify-center gap-6">
+                    <button onclick="sales.updateQtyInput(-1)" class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center text-2xl font-bold active:scale-90 transition-transform">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="number" id="q-input" value="1" class="w-24 text-center text-3xl font-black bg-transparent border-none focus:ring-0">
+                    <button onclick="sales.updateQtyInput(1)" class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl font-bold active:scale-90 transition-transform">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+                <div class="flex gap-3 pt-4 pb-4">
+                    <button onclick="sales.confirmAddToCart()" class="flex-[2] bg-blue-600 text-white p-5 rounded-2xl font-black shadow-lg shadow-blue-100 active:scale-95 transition-transform">موافق</button>
+                    <button onclick="ui.closeModal(); ui.showModal('add-to-cart-modal')" class="flex-1 bg-gray-100 text-gray-500 p-5 rounded-2xl font-black active:scale-95 transition-transform">رجوع</button>
+                </div>
+            </div>
         </div>
 
     <!-- Barcode Scanner Modal (Full Screen) -->
@@ -510,20 +828,28 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // State Management
 const state = {
     currentUser: (() => { try { return JSON.parse(localStorage.getItem('currentUser')); } catch(e) { return null; } })(),
-    products: (() => { try { return JSON.parse(localStorage.getItem('products')) || []; } catch(e) { return []; } })(),
-    users: (() => { try { return JSON.parse(localStorage.getItem('users')) || []; } catch(e) { return []; } })(),
-    invoices: (() => { try { return JSON.parse(localStorage.getItem('invoices')) || []; } catch(e) { return []; } })(),
+    products: [],
+    users: [],
+    invoices: [],
     cart: [],
     currentView: 'dashboard',
     html5QrCode: null,
     currentCameraFacing: "environment",
     scannerTargetId: null,
-    isSyncing: false
+    isSyncing: false,
+    selectedProductForCart: null,
+    editingInvoiceId: null,
+    shopName: localStorage.getItem('app_shop_name') || 'بزنس لإدارة المبيعات',
+    shopLogo: localStorage.getItem('app_shop_logo') || null,
+    shopActivity: localStorage.getItem('app_shop_activity') || '',
+    shopPhone: localStorage.getItem('app_shop_phone') || '',
+    currency: localStorage.getItem('app_currency') || 'د.ج',
+    darkMode: localStorage.getItem('app_dark_mode') === 'true'
 };
 
 // Database Management (Supabase)
 const db = {
-    sync: async () => {
+    fetchInitialData: async () => {
         if (state.isSyncing) return;
         state.isSyncing = true;
         const syncStatus = document.getElementById('sync-status');
@@ -533,37 +859,44 @@ const db = {
             // Fetch Products
             const { data: prods, error: pErr } = await _supabase.from('products').select('*');
             if (!pErr && prods) {
-                // دمج المنتجات: الحفاظ على المنتجات المحلية التي قد تكون أحدث أو لم ترفع بعد
-                const remoteIds = new Set(prods.map(p => p.id.toString()));
-                const localOnly = state.products.filter(p => !remoteIds.has(p.id.toString()));
-                state.products = [...prods, ...localOnly];
-                localStorage.setItem('products', JSON.stringify(state.products));
+                state.products = prods;
             }
 
             // Fetch Invoices
             const { data: invs, error: iErr } = await _supabase.from('invoices').select('*').order('date', { ascending: false });
             if (!iErr && invs) {
-                console.log("Fetched invoices from Supabase:", invs.length);
-                
-                // دمج الفواتير: الحفاظ على الفواتير المحلية التي لم تُرفع بعد
-                const remoteIds = new Set(invs.map(i => i.id.toString()));
-                const localOnly = state.invoices.filter(i => !remoteIds.has(i.id.toString()));
-                
-                state.invoices = [...invs, ...localOnly].sort((a, b) => new Date(b.date) - new Date(a.date));
-                localStorage.setItem('invoices', JSON.stringify(state.invoices));
-            } else if (iErr) {
-                console.error("Error fetching invoices:", iErr);
+                state.invoices = invs.map(inv => {
+                    let items = [];
+                    try {
+                        items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
+                    } catch (e) {
+                        console.error("Error parsing items for invoice:", inv.id, e);
+                        items = [];
+                    }
+                    
+                    // Calculate cost and profit on the fly if missing
+                    const total_cost = items.reduce((sum, item) => {
+                        // If item has cost saved, use it. Otherwise, try to find current product cost
+                        let itemCost = item.cost;
+                        if (itemCost === undefined || itemCost === null || itemCost === 0) {
+                            const prod = prods.find(p => String(p.id) === String(item.id));
+                            itemCost = prod ? (prod.cost || 0) : 0;
+                        }
+                        return sum + (itemCost * item.quantity);
+                    }, 0);
+                    
+                    inv.total_cost = total_cost;
+                    inv.profit = (inv.total || 0) - total_cost;
+                    
+                    return { ...inv, items };
+                });
+                console.log("Loaded invoices:", state.invoices.length);
             }
 
             // Fetch Users
             const { data: usrs, error: uErr } = await _supabase.from('users').select('*');
             if (!uErr && usrs) {
-                const remoteIds = new Set(usrs.map(u => u.id.toString()));
-                const localOnly = state.users.filter(u => !remoteIds.has(u.id.toString()));
-                state.users = [...usrs, ...localOnly];
-                localStorage.setItem('users', JSON.stringify(state.users));
-                
-                // Ensure admin exists locally if not in remote
+                state.users = usrs;
                 if (state.users.length === 0) {
                     const admin = { id: '1', username: 'munir', password: 'mannym61', role: 'super_admin', name: 'منير (المدير العام)' };
                     await db.saveUser(admin);
@@ -571,10 +904,9 @@ const db = {
                 }
             }
             
-            // Refresh current view
             router.navigate(state.currentView);
         } catch (err) {
-            console.error("Sync error:", err);
+            console.error("Data fetch error:", err);
         } finally {
             state.isSyncing = false;
             if (syncStatus) syncStatus.classList.add('hidden');
@@ -582,60 +914,84 @@ const db = {
     },
     saveProduct: async (product) => {
         try {
-            // Log the data being sent for debugging
-            console.log("Saving product to Supabase:", product);
-            
             const { error } = await _supabase.from('products').upsert(product);
-            
             if (error) {
-                console.error("Supabase Error Details:", error);
-                // Show more helpful alert
-                let errorDetail = error.message || "خطأ غير معروف";
-                if (error.hint) errorDetail += " | Hint: " + error.hint;
-                if (error.details) errorDetail += " | Details: " + error.details;
-                
-                alert("خطأ في المزامنة: " + errorDetail);
+                console.error("Supabase Product Error:", error);
+                alert("خطأ في المزامنة: " + error.message);
                 return false;
             }
             return true;
         } catch (err) {
-            console.error("Critical Sync Exception:", err);
-            alert("فشل الاتصال: " + err.message);
+            console.error("Critical Product Exception:", err);
             return false;
         }
     },
     deleteProduct: async (id) => {
         const { error } = await _supabase.from('products').delete().eq('id', id);
-        if (error) console.error("Error deleting product:", error);
         return !error;
     },
     saveInvoice: async (invoice) => {
         try {
-            console.log("Syncing invoice to Supabase:", invoice);
-            const { error } = await _supabase.from('invoices').insert(invoice);
+            // Remove columns that don't exist in the Supabase schema to avoid 400 errors.
+            // Based on logs, 'user_id', 'profit', and 'total_cost' are missing from the schema.
+            const { total_cost, profit, user_id, ...coreData } = invoice;
+            
+            // Prepare data for text/json columns
+            const dataToSave = {
+                ...coreData,
+                items: JSON.stringify(invoice.items) // Try stringified first for text columns
+            };
+            
+            console.log("Attempting to save invoice (Cleaned):", dataToSave);
+            
+            let { error } = await _supabase.from('invoices').upsert(dataToSave);
             
             if (error) {
-                console.error("Supabase Invoice Error:", error);
-                alert("فشل حفظ الفاتورة سحابياً: " + error.message);
-                return false;
+                console.error("Supabase Invoice Error (Attempt 1 - Stringified):", error);
+                
+                // If it fails, try sending items as a raw array (in case the column is jsonb)
+                console.log("Retrying with raw items array...");
+                const { error: retryError } = await _supabase.from('invoices').upsert(coreData);
+                
+                if (retryError) {
+                    console.error("Supabase Invoice Error (Attempt 2 - Raw):", retryError);
+                    alert("فشل حفظ الفاتورة سحابياً: " + (retryError.message || "خطأ في توافق البيانات"));
+                    return false;
+                }
             }
-            console.log("Invoice synced successfully");
             return true;
         } catch (err) {
-            console.error("Invoice Sync Exception:", err);
-            alert("خطأ في الاتصال أثناء حفظ الفاتورة: " + err.message);
+            console.error("Invoice Save Exception:", err);
             return false;
         }
     },
     saveUser: async (user) => {
         const { error } = await _supabase.from('users').upsert(user);
-        if (error) console.error("Error saving user:", error);
         return !error;
     },
     deleteUser: async (id) => {
         const { error } = await _supabase.from('users').delete().eq('id', id);
-        if (error) console.error("Error deleting user:", error);
         return !error;
+    },
+    saveSetting: async (key, value) => {
+        try {
+            const { error } = await _supabase.from('settings').upsert({ key, value, updated_at: new Date().toISOString() });
+            if (error) {
+                // Check if table is missing or access denied
+                if (error.code === '42P01' || error.status === 404) {
+                    console.warn(`Supabase: 'settings' table missing or unreachable (Status: ${error.status}). Falling back to local storage.`);
+                } else {
+                    console.error("Supabase settings error:", error);
+                }
+                localStorage.setItem(`setting_${key}`, value);
+                return true;
+            }
+            return true;
+        } catch (e) {
+            console.warn("Supabase connection failed, using local storage:", e);
+            localStorage.setItem(`setting_${key}`, value);
+            return true;
+        }
     }
 };
 
@@ -648,7 +1004,6 @@ if (state.users.length === 0) {
         role: 'super_admin',
         name: 'منير (المدير العام)'
     });
-    localStorage.setItem('users', JSON.stringify(state.users));
 }
 
 // Router
@@ -750,6 +1105,10 @@ const ui = {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('main-app').classList.remove('hidden');
         
+        // Update currency select value
+        const currencySelect = document.getElementById('setting-currency');
+        if (currencySelect) currencySelect.value = state.currency;
+        
         // Show/Hide user management based on role
         const userMgmtBtn = document.getElementById('btn-user-mgmt');
         const navUsers = document.getElementById('nav-users');
@@ -766,6 +1125,29 @@ const ui = {
     showModal: (id) => {
         document.getElementById('modal-overlay').classList.remove('hidden');
         document.getElementById(id).classList.remove('hidden');
+        if (id === 'settings-modal') {
+            document.getElementById('setting-currency').value = state.currency;
+            document.getElementById('setting-shop-name').value = state.shopName || '';
+            document.getElementById('setting-shop-activity').value = state.shopActivity || '';
+            document.getElementById('setting-shop-phone').value = state.shopPhone || '';
+            
+            // Update logo preview
+            const preview = document.getElementById('setting-logo-preview');
+            const placeholder = document.getElementById('setting-logo-placeholder');
+            const removeBtn = document.getElementById('remove-logo-btn');
+            
+            if (state.shopLogo) {
+                preview.src = state.shopLogo;
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                removeBtn.classList.remove('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                removeBtn.classList.add('hidden');
+            }
+        }
     },
     closeModal: () => {
         document.getElementById('modal-overlay').classList.add('hidden');
@@ -822,7 +1204,7 @@ const ui = {
                 if (input) input.value = decodedText;
                 ui.stopScanner();
             } else {
-                const product = state.products.find(p => p.barcode == decodedText || p.id == decodedText);
+                const product = state.products.find(p => String(p.barcode) === String(decodedText) || String(p.id) === String(decodedText));
                 if (product) {
                     sales.addToCart(product.id);
                     ui.stopScanner();
@@ -876,16 +1258,21 @@ const ui = {
     },
     updateDashboardStats: () => {
         const today = new Date().toLocaleDateString();
-        const todaySales = state.invoices
-            .filter(inv => new Date(inv.date).toLocaleDateString() === today)
-            .reduce((sum, inv) => sum + inv.total, 0);
+        const todayInvoices = state.invoices.filter(inv => new Date(inv.date).toLocaleDateString() === today);
+        
+        const todaySales = todayInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+        const todayProfit = todayInvoices.reduce((sum, inv) => sum + (inv.profit || 0), 0);
         
         document.getElementById('stat-today-sales').innerText = todaySales.toLocaleString();
+        document.getElementById('stat-today-profit').innerText = todayProfit.toLocaleString();
         document.getElementById('stat-total-products').innerText = state.products.length;
+
+        // Update currency labels
+        document.querySelectorAll('.app-currency-label').forEach(el => el.innerText = state.currency);
 
         // Recent Invoices
         const list = document.getElementById('recent-invoices-list');
-        const recent = [...state.invoices].reverse().slice(0, 5);
+        const recent = state.invoices.slice(0, 5);
         
         if (recent.length > 0) {
             list.innerHTML = recent.map(inv => `
@@ -899,12 +1286,27 @@ const ui = {
                             <p class="text-[10px] font-bold text-gray-400 uppercase">${new Date(inv.date).toLocaleTimeString('ar-DZ', {hour: '2-digit', minute:'2-digit'})}</p>
                         </div>
                     </div>
-                    <div class="text-left">
-                        <p class="font-black text-blue-600 text-sm">${inv.total.toLocaleString()} د.ج</p>
-                        <p class="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-0.5 rounded-md w-fit mr-auto mt-1">ناجحة</p>
+                    <div class="flex items-center gap-3">
+                        <div class="text-left">
+                            <p class="font-black text-blue-600 text-sm">${inv.total.toLocaleString()} ${state.currency}</p>
+                            <p class="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-0.5 rounded-md w-fit mr-auto mt-1">ناجحة</p>
+                        </div>
+                        <button onclick="sales.printInvoice('${inv.id}')" class="w-9 h-9 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center active:scale-90 transition-transform">
+                            <i class="fas fa-print text-xs"></i>
+                        </button>
+                        <button onclick="sales.editInvoice('${inv.id}')" class="w-9 h-9 bg-gray-100 text-gray-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform">
+                            <i class="fas fa-edit text-xs"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
+        } else {
+            list.innerHTML = `
+                <div class="p-8 text-center bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
+                    <i class="fas fa-receipt text-gray-200 text-3xl mb-2"></i>
+                    <p class="text-gray-400 text-xs font-bold">لا توجد مبيعات مؤخراً</p>
+                </div>
+            `;
         }
     }
 };
@@ -919,8 +1321,8 @@ const products = {
         // Reset fields
         fields.forEach(f => document.getElementById(f).value = '');
 
-        if (id) {
-            const p = state.products.find(prod => prod.id === id);
+        if (id && id !== 'null' && id !== 'undefined') {
+            const p = state.products.find(prod => String(prod.id) === String(id));
             if (p) {
                 title.innerText = 'تعديل منتج';
                 btn.innerText = 'تحديث التغييرات';
@@ -947,9 +1349,15 @@ const products = {
         const qty = parseInt(document.getElementById('p-qty').value) || 0;
         const barcode = document.getElementById('p-barcode').value;
 
-        if (!name || isNaN(price) || isNaN(qty)) {
-            alert("يرجى ملء الحقول الأساسية (الاسم، السعر، الكمية)");
+        if (!name || isNaN(price) || isNaN(qty) || isNaN(cost)) {
+            alert("يرجى ملء الحقول الأساسية (الاسم، السعر، الكمية، التكلفة)");
             return;
+        }
+
+        if (cost <= 0) {
+            if (!confirm("سعر التكلفة هو 0. هل تريد الاستمرار؟ (سيؤثر ذلك على دقة تقارير الأرباح)")) {
+                return;
+            }
         }
 
         // Check for duplicate barcode if this is a NEW product
@@ -969,9 +1377,8 @@ const products = {
                     
                     const success = await db.saveProduct(updatedData);
                     if (success) {
-                        const index = state.products.findIndex(p => p.id === existingProduct.id);
-                        state.products[index] = updatedData;
-                        localStorage.setItem('products', JSON.stringify(state.products));
+                        const index = state.products.findIndex(p => String(p.id) === String(existingProduct.id));
+                        if (index !== -1) state.products[index] = updatedData;
                         ui.closeModal();
                         products.render();
                         return;
@@ -991,20 +1398,19 @@ const products = {
             price,
             qty,
             barcode: barcode || '',
-            created_at: id ? (state.products.find(p => p.id == id)?.created_at || new Date().toISOString()) : new Date().toISOString(),
+            created_at: id ? (state.products.find(p => String(p.id) === String(id))?.created_at || new Date().toISOString()) : new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
 
         const success = await db.saveProduct(productData);
         if (success) {
             if (id) {
-                    const index = state.products.findIndex(p => p.id == id);
-                    state.products[index] = productData;
+                    const index = state.products.findIndex(p => String(p.id) === String(id));
+                    if (index !== -1) state.products[index] = productData;
                 } else {
                     state.products.push(productData);
                 }
             
-            localStorage.setItem('products', JSON.stringify(state.products));
             ui.closeModal();
             products.render();
         } else {
@@ -1037,7 +1443,7 @@ const products = {
                             <span class="text-[9px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md uppercase tracking-tighter">${p.code || 'بدون كود'}</span>
                         </div>
                         <div class="flex items-center gap-2 mt-0.5">
-                            <span class="text-blue-600 font-black text-sm">${p.price.toLocaleString()} د.ج</span>
+                            <span class="text-blue-600 font-black text-sm">${p.price.toLocaleString()} ${state.currency}</span>
                             <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
                             <span class="text-[10px] font-black ${p.qty <= 0 ? 'text-red-600 bg-red-100 border border-red-200' : (p.qty < 5 ? 'text-orange-500 bg-orange-50' : 'text-gray-400 bg-gray-50')} px-2 py-0.5 rounded-md uppercase">
                                 ${p.qty <= 0 ? 'نفذت الكمية' : `المخزون: ${p.qty}`}
@@ -1051,10 +1457,10 @@ const products = {
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="products.openModal('${p.id}')" class="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                    <button onclick="products.openModal('${p.id || ''}')" class="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
                         <i class="fas fa-edit text-sm"></i>
                     </button>
-                    <button onclick="products.delete('${p.id}')" class="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                    <button onclick="products.delete('${p.id || ''}')" class="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
                         <i class="fas fa-trash-can text-sm"></i>
                     </button>
                 </div>
@@ -1072,7 +1478,6 @@ const products = {
         if(confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
             state.products = state.products.filter(p => p.id != id);
             db.deleteProduct(id); // Sync to Supabase
-            localStorage.setItem('products', JSON.stringify(state.products));
             products.render();
         }
     }
@@ -1080,6 +1485,10 @@ const products = {
 
 // Sales & Cart
 const sales = {
+    openProductSelection: () => {
+        sales.searchProduct(''); // Show all products
+        ui.showModal('add-to-cart-modal');
+    },
     searchProduct: (term) => {
         const container = document.getElementById('cart-product-selection');
         const filtered = state.products.filter(p => 
@@ -1108,32 +1517,66 @@ const sales = {
                         <p class="text-[10px] font-bold text-gray-400 uppercase">متوفر: ${p.qty}</p>
                     </div>
                 </div>
-                <span class="text-blue-600 font-black">${p.price.toLocaleString()} د.ج</span>
+                <span class="text-blue-600 font-black">${p.price.toLocaleString()} ${state.currency}</span>
             </button>
         `).join('');
     },
     addToCart: (productId) => {
-        const product = state.products.find(p => p.id === productId);
+        const product = state.products.find(p => String(p.id) === String(productId));
         if (!product || product.qty <= 0) {
             alert("المنتج غير متوفر أو نفذت الكمية");
             return;
         }
 
-        const existing = state.cart.find(item => item.id === productId);
+        state.selectedProductForCart = product;
+        document.getElementById('q-product-name').innerText = product.name;
+        document.getElementById('q-product-stock').innerText = `المتوفر في المخزن: ${product.qty}`;
+        document.getElementById('q-input').value = 1;
+        
+        ui.closeModal();
+        ui.showModal('quantity-modal');
+    },
+    updateQtyInput: (val) => {
+        const input = document.getElementById('q-input');
+        let current = parseInt(input.value) || 0;
+        current += val;
+        if (current < 1) current = 1;
+        if (state.selectedProductForCart && current > state.selectedProductForCart.qty) {
+            alert("لا يمكن تجاوز الكمية المتوفرة");
+            current = state.selectedProductForCart.qty;
+        }
+        input.value = current;
+    },
+    confirmAddToCart: () => {
+        const qty = parseInt(document.getElementById('q-input').value) || 0;
+        const product = state.selectedProductForCart;
+
+        if (!product || qty <= 0) return;
+
+        if (qty > product.qty) {
+            alert("الكمية المطلوبة غير متوفرة");
+            return;
+        }
+
+        const existing = state.cart.find(item => String(item.id) === String(product.id));
         if (existing) {
-            if (existing.quantity < product.qty) {
-                existing.quantity++;
+            if ((existing.quantity + qty) <= product.qty) {
+                existing.quantity += qty;
             } else {
-                alert("لا يمكن تجاوز الكمية المتوفرة");
+                alert("إجمالي الكمية المطلوبة يتجاوز المخزون");
+                return;
             }
         } else {
-            state.cart.push({ ...product, quantity: 1 });
+            state.cart.push({ ...product, quantity: qty });
         }
 
         sales.renderCart();
+        state.selectedProductForCart = null;
+        ui.closeModal();
+        sales.openProductSelection(); // Return to product list
     },
     removeFromCart: (id) => {
-        state.cart = state.cart.filter(item => item.id !== id);
+        state.cart = state.cart.filter(item => String(item.id) !== String(id));
         sales.renderCart();
     },
     renderCart: () => {
@@ -1168,7 +1611,7 @@ const sales = {
                         </div>
                     </div>
                     <div class="flex items-center gap-4">
-                        <p class="font-black text-blue-600">${itemTotal.toLocaleString()} د.ج</p>
+                        <p class="font-black text-blue-600">${itemTotal.toLocaleString()} ${state.currency}</p>
                         <button onclick="sales.removeFromCart('${item.id}')" class="w-8 h-8 bg-red-50 text-red-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform">
                             <i class="fas fa-xmark"></i>
                         </button>
@@ -1180,57 +1623,261 @@ const sales = {
         document.getElementById('cart-subtotal').innerText = total.toLocaleString();
         document.getElementById('cart-total').innerText = total.toLocaleString();
     },
+    editInvoice: (id) => {
+        const invoice = state.invoices.find(inv => String(inv.id) === String(id));
+        if (!invoice) return;
+
+        // Confirm because it will clear the current cart
+        if (state.cart.length > 0) {
+            if (!confirm("تعديل هذه الفاتورة سيؤدي لمسح السلة الحالية. هل أنت متأكد؟")) return;
+        }
+
+        // Restore stock for the old invoice items first
+        invoice.items.forEach(item => {
+            const product = state.products.find(p => String(p.id) === String(item.id));
+            if (product) {
+                product.qty += item.quantity;
+            }
+        });
+
+        state.cart = invoice.items.map(item => {
+            const p = state.products.find(prod => String(prod.id) === String(item.id));
+            return {
+                ...p,
+                quantity: item.quantity
+            };
+        });
+
+        state.editingInvoiceId = id;
+        router.navigate('invoice');
+        alert(`جاري تعديل الفاتورة رقم: ${id}`);
+    },
+    printInvoice: async (id) => {
+        const inv = state.invoices.find(i => String(i.id) === String(id));
+        if (!inv) return;
+
+        // Ensure items are an array
+        const items = Array.isArray(inv.items) ? inv.items : [];
+
+        // Custom Font Definition for PDF and Print
+        const fontStyles = `
+            @font-face {
+                font-family: 'RAOOF';
+                src: url('RAOOF-REALROUND.otf') format('opentype');
+            }
+            .invoice-container { font-family: 'Cairo', sans-serif !important; }
+            .shop-logo-text { font-family: 'RAOOF', 'Cairo', sans-serif !important; }
+        `;
+
+        // Create a printable template
+        const printContent = `
+            <div dir="rtl" class="invoice-container" style="padding: 30px; color: #000000; background: white; max-width: 800px; margin: auto; border: 1px solid #e2e8f0;">
+                <div style="text-align: center; border-bottom: 3px solid #000000; padding-bottom: 20px; margin-bottom: 25px;">
+                    ${state.shopLogo ? `<img src="${state.shopLogo}" style="max-height: 120px; margin: 0 auto 15px auto; display: block; border-radius: 8px;">` : ''}
+                    <h1 class="shop-logo-text" style="margin: 5px 0 0 0; color: #000000; font-size: 32px; font-weight: 900;">${state.shopName || 'بزنس لإدارة المبيعات'}</h1>
+                    ${state.shopActivity ? `<p style="margin: 5px 0; color: #000000; font-weight: bold; font-size: 18px;">${state.shopActivity}</p>` : ''}
+                    <p style="margin: 10px 0; font-weight: bold; color: #000000; font-size: 16px; border: 2px solid #000000; display: inline-block; padding: 5px 25px; border-radius: 50px; text-transform: uppercase;">فاتورة مبيعات</p>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 30px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; color: #000000;">
+                    <div style="text-align: right;">
+                        <p style="margin: 2px 0;"><strong>رقم الفاتورة:</strong> <span style="font-weight: 900;">#${inv.id}</span></p>
+                        <p style="margin: 2px 0;"><strong>التاريخ:</strong> ${new Date(inv.date).toLocaleString('ar-DZ')}</p>
+                        ${state.shopPhone ? `<p style="margin: 2px 0;"><strong>الهاتف:</strong> ${state.shopPhone}</p>` : ''}
+                    </div>
+                    <div style="text-align: left;">
+                        <p style="margin: 2px 0;"><strong>البائع:</strong> ${state.currentUser ? state.currentUser.name : 'غير معروف'}</p>
+                    </div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; direction: rtl; color: #000000;">
+                    <thead>
+                        <tr style="background: #000000; color: white;">
+                            <th style="padding: 12px 10px; text-align: right; border-radius: 0 8px 0 0;">المنتج</th>
+                            <th style="padding: 12px 10px; text-align: center;">الكمية</th>
+                            <th style="padding: 12px 10px; text-align: center;">السعر</th>
+                            <th style="padding: 12px 10px; text-align: left; border-radius: 8px 0 0 0;">الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.length > 0 ? items.map(item => `
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 12px 10px; font-weight: bold;">${item.name}</td>
+                                <td style="padding: 12px 10px; text-align: center; font-weight: bold;">${item.quantity}</td>
+                                <td style="padding: 12px 10px; text-align: center;">${item.price.toLocaleString()}</td>
+                                <td style="padding: 12px 10px; text-align: left; font-weight: 900;">${(item.price * item.quantity).toLocaleString()}</td>
+                            </tr>
+                        `).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد منتجات</td></tr>`}
+                    </tbody>
+                </table>
+
+                <div style="display: flex; justify-content: flex-end;">
+                    <div style="width: 250px; background: #f1f5f9; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; color: #000000;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>الإجمالي الفرعي:</span>
+                            <span style="font-weight: bold;">${inv.total.toLocaleString()} ${state.currency}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 20px; border-top: 2px solid #000000; padding-top: 10px; margin-top: 10px;">
+                            <span>الإجمالي النهائي:</span>
+                            <span>${inv.total.toLocaleString()} ${state.currency}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 60px; text-align: center; font-size: 14px; color: #000000; border-top: 2px dashed #000000; padding-top: 20px; font-weight: bold;">
+                    شكراً لتعاملكم معنا! نأمل رؤيتكم مرة أخرى.
+                </div>
+            </div>
+        `;
+
+        // Create a temporary element for PDF generation
+        const element = document.createElement('div');
+        element.innerHTML = printContent;
+        
+        // Add specific styles to ensure fonts load in PDF
+        const style = document.createElement('style');
+        style.textContent = `
+            ${fontStyles}
+        `;
+        element.appendChild(style);
+        
+        element.style.position = 'absolute';
+        element.style.left = '-9999px';
+        element.style.width = '800px'; 
+        document.body.appendChild(element);
+        
+        // Wait for fonts to load
+        await document.fonts.ready;
+        
+        // Show choice to user (Print or PDF)
+        const choice = confirm("هل تريد تحميل الفاتورة كـ PDF؟ (إلغاء للطباعة المباشرة)");
+        
+        if (choice) {
+            const opt = {
+                margin:       [10, 10],
+                filename:     `فاتورة_${inv.id}.pdf`,
+                image:        { type: 'jpeg', quality: 1.0 },
+                html2canvas:  { 
+                    scale: 3, 
+                    useCORS: true, 
+                    letterRendering: true,
+                    logging: false,
+                    allowTaint: true
+                },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            try {
+                await html2pdf().set(opt).from(element).save();
+            } catch (err) {
+                console.error("PDF generation error:", err);
+                alert("حدث خطأ أثناء إنشاء ملف PDF. جرب الطباعة العادية.");
+            }
+            document.body.removeChild(element);
+        } else {
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert("يرجى السماح بالنوافذ المنبثقة للطباعة");
+                return;
+            }
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>طباعة فاتورة #${inv.id}</title>
+                        <style>
+                            ${fontStyles}
+                            body { font-family: 'Cairo', sans-serif; margin: 0; background: #f8fafc; padding: 20px; }
+                            @media print {
+                                body { background: white; padding: 0; }
+                                .no-print { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body dir="rtl">
+                        ${printContent}
+                        <script>
+                            window.onload = () => {
+                                setTimeout(() => {
+                                    window.print();
+                                    window.close();
+                                }, 800);
+                            };
+                        <\/script>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            document.body.removeChild(element);
+        }
+    },
     checkout: async () => {
         if (state.cart.length === 0) {
             alert("السلة فارغة");
             return;
         }
 
+        const invoiceId = String(state.editingInvoiceId || Date.now());
+        
         const invoice = {
-            id: (state.invoices.length + 1001).toString() + "-" + Math.random().toString(36).substring(2, 5).toUpperCase(),
+            id: invoiceId,
             date: new Date().toISOString(),
             items: state.cart.map(item => ({
-                id: item.id,
+                id: String(item.id),
                 name: item.name,
                 price: item.price,
                 cost: item.cost || 0,
                 quantity: item.quantity
             })),
             total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-            totalCost: state.cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0),
+            total_cost: state.cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0),
             profit: state.cart.reduce((sum, item) => sum + ((item.price - (item.cost || 0)) * item.quantity), 0),
-            userId: state.currentUser ? state.currentUser.id : 'guest'
+            user_id: state.currentUser ? state.currentUser.id : 'guest'
         };
 
         // Deduct stock and sync to Supabase
         for (const cartItem of state.cart) {
-            const p = state.products.find(prod => prod.id === cartItem.id);
+            const p = state.products.find(prod => String(prod.id) === String(cartItem.id));
             if (p) {
                 p.qty -= cartItem.quantity;
-                await db.saveProduct(p); // Wait for each stock update
+                await db.saveProduct(p);
             }
         }
 
         const success = await db.saveInvoice(invoice); 
         
         if (!success) {
-            console.warn("Invoice saved locally only due to sync failure");
-            alert("تم حفظ الفاتورة محلياً فقط. يرجى التأكد من الإنترنت للمزامنة لاحقاً.");
+            alert("فشل حفظ الفاتورة سحابياً. يرجى التأكد من الإنترنت.");
+            return;
         }
         
-        state.invoices.push(invoice);
+        if (state.editingInvoiceId) {
+            const index = state.invoices.findIndex(inv => String(inv.id) === String(state.editingInvoiceId));
+            if (index !== -1) state.invoices[index] = invoice;
+        } else {
+            state.invoices.unshift(invoice);
+        }
+
         state.cart = [];
+        state.editingInvoiceId = null;
         
-        localStorage.setItem('invoices', JSON.stringify(state.invoices));
-        localStorage.setItem('products', JSON.stringify(state.products));
+        // Success notification with print option
+        const printNow = confirm("تم إتمام العملية بنجاح! رقم الفاتورة: " + invoice.id + "\n\nهل تريد طباعة الفاتورة الآن؟");
+        if (printNow) {
+            sales.printInvoice(invoice.id);
+        }
         
-        alert("تم إتمام عملية البيع بنجاح! رقم الفاتورة: " + invoice.id);
         router.navigate('dashboard');
     }
 };
 
 // User Management
 const users = {
+    openModal: () => {
+        document.getElementById('u-name').value = '';
+        document.getElementById('u-pass').value = '';
+        document.getElementById('u-role').value = 'sales';
+        ui.showModal('add-user-modal');
+    },
     add: () => {
         const username = document.getElementById('u-name').value;
         const password = document.getElementById('u-pass').value;
@@ -1256,7 +1903,6 @@ const users = {
 
         state.users.push(newUser);
         db.saveUser(newUser); // Sync user to Supabase
-        localStorage.setItem('users', JSON.stringify(state.users));
         
         document.getElementById('u-name').value = '';
         document.getElementById('u-pass').value = '';
@@ -1304,14 +1950,121 @@ const users = {
         if(confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
             state.users = state.users.filter(u => u.id !== id);
             db.deleteUser(id); // Sync to Supabase
-            localStorage.setItem('users', JSON.stringify(state.users));
             users.render();
+        }
+    }
+};
+
+// Settings Management
+const settings = {
+    updateCurrency: async (val) => {
+        state.currency = val;
+        localStorage.setItem('app_currency', val);
+        await db.saveSetting('currency', val);
+        
+        // Refresh UI
+        if (state.currentView === 'dashboard') ui.updateDashboardStats();
+        if (state.currentView === 'products') products.render();
+        if (state.currentView === 'invoice') sales.renderCart();
+        if (state.currentView === 'reports') reports.filter(document.querySelector('.report-filter-btn.active')?.getAttribute('onclick')?.match(/'([^']+)'/)[1] || 'today');
+        
+        alert(`تم تغيير العملة إلى: ${val}`);
+    },
+    updateShopName: async (val) => {
+        if (!val) return;
+        state.shopName = val;
+        localStorage.setItem('app_shop_name', val);
+        await db.saveSetting('shop_name', val);
+        
+        // Update any UI elements that show shop name
+        const logo = document.querySelector('.app-logo');
+        if (logo) logo.innerText = val;
+        document.title = val;
+    },
+    updateShopActivity: async (val) => {
+        state.shopActivity = val;
+        localStorage.setItem('app_shop_activity', val);
+        await db.saveSetting('shop_activity', val);
+    },
+    updateShopPhone: async (val) => {
+        state.shopPhone = val;
+        localStorage.setItem('app_shop_phone', val);
+        await db.saveSetting('shop_phone', val);
+    },
+    updateLogo: (input) => {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64Image = e.target.result;
+                state.shopLogo = base64Image;
+                localStorage.setItem('app_shop_logo', base64Image);
+                await db.saveSetting('shop_logo', base64Image);
+                
+                // Update UI preview
+                document.getElementById('setting-logo-preview').src = base64Image;
+                document.getElementById('setting-logo-preview').classList.remove('hidden');
+                document.getElementById('setting-logo-placeholder').classList.add('hidden');
+                document.getElementById('remove-logo-btn').classList.remove('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    },
+    removeLogo: async () => {
+        state.shopLogo = null;
+        localStorage.removeItem('app_shop_logo');
+        await db.saveSetting('shop_logo', null);
+        
+        // Update UI preview
+        document.getElementById('setting-logo-preview').src = '';
+        document.getElementById('setting-logo-preview').classList.add('hidden');
+        document.getElementById('setting-logo-placeholder').classList.remove('hidden');
+        document.getElementById('remove-logo-btn').classList.add('hidden');
+        document.getElementById('setting-shop-logo').value = '';
+    },
+    toggleDarkMode: async () => {
+        state.darkMode = !state.darkMode;
+        localStorage.setItem('app_dark_mode', state.darkMode);
+        await db.saveSetting('dark_mode', state.darkMode);
+        settings.applyDarkMode();
+    },
+    applyDarkMode: () => {
+        if (state.darkMode) {
+            document.body.classList.add('dark');
+            const icon = document.getElementById('dark-mode-icon');
+            if (icon) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
+        } else {
+            document.body.classList.remove('dark');
+            const icon = document.getElementById('dark-mode-icon');
+            if (icon) {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
         }
     }
 };
 
 // Reports Management
 const reports = {
+    currentTab: 'sales',
+    switchTab: (tab, btn) => {
+        reports.currentTab = tab;
+        // Update UI tabs
+        document.querySelectorAll('.report-tab-btn').forEach(b => {
+            b.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+            b.classList.add('text-gray-400');
+        });
+        btn.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+        btn.classList.remove('text-gray-400');
+
+        // Show/Hide sections
+        document.getElementById('report-sales-section').classList.toggle('hidden', tab !== 'sales');
+        document.getElementById('report-inventory-section').classList.toggle('hidden', tab !== 'inventory');
+
+        reports.render();
+    },
     filter: (period, btn) => {
         // Update UI buttons
         document.querySelectorAll('.report-filter-btn').forEach(b => {
@@ -1343,60 +2096,92 @@ const reports = {
         reports.render(filteredInvoices);
     },
     render: (list = state.invoices) => {
-        const totalSales = list.reduce((sum, inv) => sum + (inv.total || 0), 0);
-        const totalCost = list.reduce((sum, inv) => sum + (inv.totalCost || 0), 0);
-        const totalProfit = list.reduce((sum, inv) => sum + (inv.profit || 0), 0);
+        // Update currency labels in reports
+        document.querySelectorAll('.report-currency-label').forEach(el => el.innerText = state.currency);
 
-        document.getElementById('report-total-sales').innerText = totalSales.toLocaleString();
-        document.getElementById('report-total-cost').innerText = totalCost.toLocaleString();
-        document.getElementById('report-total-profit').innerText = totalProfit.toLocaleString();
+        if (reports.currentTab === 'sales') {
+            const totalSales = list.reduce((sum, inv) => sum + (inv.total || 0), 0);
+            const total_cost = list.reduce((sum, inv) => sum + (inv.total_cost || 0), 0);
+            const totalProfit = list.reduce((sum, inv) => sum + (inv.profit || 0), 0);
+            const profitMargin = totalSales > 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : 0;
 
-        const container = document.getElementById('reports-list');
-        if (list.length === 0) {
-            container.innerHTML = `
-                <div class="mobile-card p-10 text-center">
-                    <p class="text-gray-400 font-bold">لا توجد عمليات بيع في هذه الفترة</p>
+            document.getElementById('report-total-sales').innerText = totalSales.toLocaleString();
+            document.getElementById('report-total-cost').innerText = total_cost.toLocaleString();
+            document.getElementById('report-total-profit').innerText = totalProfit.toLocaleString();
+            document.getElementById('report-profit-margin').innerText = `${profitMargin}%`;
+
+            const container = document.getElementById('reports-list');
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="mobile-card p-10 text-center">
+                        <p class="text-gray-400 font-bold">لا توجد عمليات بيع في هذه الفترة</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(inv => `
+                <div class="mobile-card p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <div>
+                                <p class="font-black text-gray-900 text-sm">فاتورة #${inv.id}</p>
+                                <p class="text-[10px] font-bold text-gray-400">${new Date(inv.date).toLocaleString('ar-DZ')}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-left">
+                                <p class="font-black text-blue-600 text-sm">${inv.total.toLocaleString()} ${state.currency}</p>
+                                <div class="flex flex-col items-end gap-0.5 mt-1">
+                                    <span class="text-[9px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">التكلفة: ${inv.total_cost ? inv.total_cost.toLocaleString() : '0'}</span>
+                                    <span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">الربح: ${inv.profit ? inv.profit.toLocaleString() : '0'}</span>
+                                </div>
+                            </div>
+                            <button onclick="sales.printInvoice('${inv.id}')" class="w-9 h-9 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center active:scale-90 transition-transform">
+                                <i class="fas fa-print text-xs"></i>
+                            </button>
+                            <button onclick="sales.editInvoice('${inv.id}')" class="w-9 h-9 bg-gray-100 text-gray-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform">
+                                <i class="fas fa-edit text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pt-2 border-t border-dashed border-gray-100">
+                        <p class="text-[10px] text-gray-400 font-bold mb-1">المنتجات:</p>
+                        <div class="flex flex-wrap gap-1">
+                            ${inv.items.map(item => `
+                                <span class="bg-gray-50 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-md border border-gray-100">
+                                    ${item.name} (x${item.quantity})
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
-            `;
-            return;
+            `).join('');
+        } else if (reports.currentTab === 'inventory') {
+            const inventoryCost = state.products.reduce((sum, p) => sum + ((p.cost || 0) * p.qty), 0);
+            const inventorySell = state.products.reduce((sum, p) => sum + ((p.price || 0) * p.qty), 0);
+            const potentialProfit = inventorySell - inventoryCost;
+            const potentialMargin = inventorySell > 0 ? ((potentialProfit / inventorySell) * 100).toFixed(1) : 0;
+
+            document.getElementById('report-inventory-cost').innerText = inventoryCost.toLocaleString();
+            document.getElementById('report-inventory-sell').innerText = inventorySell.toLocaleString();
+            document.getElementById('report-inventory-profit').innerText = potentialProfit.toLocaleString();
+            document.getElementById('report-inventory-margin').innerText = `هامش: ${potentialMargin}%`;
         }
-
-        container.innerHTML = [...list].reverse().map(inv => `
-            <div class="mobile-card p-4 space-y-3">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-file-invoice"></i>
-                        </div>
-                        <div>
-                            <p class="font-black text-gray-900 text-sm">فاتورة #${inv.id}</p>
-                            <p class="text-[10px] font-bold text-gray-400">${new Date(inv.date).toLocaleString('ar-DZ')}</p>
-                        </div>
-                    </div>
-                    <div class="text-left">
-                        <p class="font-black text-blue-600 text-sm">${inv.total.toLocaleString()} دج</p>
-                        <p class="text-[9px] font-bold text-emerald-500">الربح: ${inv.profit ? inv.profit.toLocaleString() : '0'} دج</p>
-                    </div>
-                </div>
-                <div class="pt-2 border-t border-dashed border-gray-100">
-                    <p class="text-[10px] text-gray-400 font-bold mb-1">المنتجات:</p>
-                    <div class="flex flex-wrap gap-1">
-                        ${inv.items.map(item => `
-                            <span class="bg-gray-50 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-md border border-gray-100">
-                                ${item.name} (x${item.quantity})
-                            </span>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `).join('');
     }
 };
 
 // Initialize
 window.onload = async () => {
     auth.check();
-    await db.sync(); // Fetch latest data from Supabase
+    settings.applyDarkMode();
+    await db.fetchInitialData(); // Fetch latest data from Supabase
+    
+    // Auto-sync every 5 minutes
+    setInterval(() => db.fetchInitialData(), 5 * 60 * 1000);
 };
     </script>
 </body>
